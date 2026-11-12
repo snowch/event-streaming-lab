@@ -6,6 +6,12 @@ Ten complete browser investigations about events, state, windows, event time, re
 
 Real RxPY 6.1.0 runs in Pyodide 0.27.7 inside a Web Worker. The watermark/window policy, queue, crash schedule and partitioned log are explicit teaching models, not implementations of Kafka/Flink guarantees. No broker or hosted Python backend is used.
 
+## Advanced reading and companion proposal
+
+[Inside a distributed streaming system](https://snowch.github.io/event-streaming-lab/advanced/) adds nine reading chapters: parallel state, watermarks across inputs, retention/timers, consistent checkpoints, external effects, backpressure, rescaling/skew, changing join results and operations. Each includes a relationship diagram, an authored worked trace, framework distinctions, progressive hints, a transfer question and primary sources. They are static HTML and read without JavaScript or Python.
+
+The [ZeroMQ companion proposal](https://snowch.github.io/event-streaming-lab/advanced/zeromq-companion.html) evaluates the supplied 2013 Code Connected PDF and outlines original native PyZMQ exercises. It is a proposal, not a companion implementation or a browser networking claim.
+
 ## Develop
 
 Node 24+, Python 3.12 and uv (or venv/pip):
@@ -33,6 +39,7 @@ The Pages workflow checks pushes and pull requests. Successful pushes to main de
 ## Structure
 
 - `src/lessons.mjs`: ordered curriculum, prose, Python examples, hints and transfer tasks.
+- `src/advanced.mjs`, `scripts/advanced.mjs`: advanced chapter content and static renderer.
 - `python/course.py`: inspectable, bounded teaching helpers.
 - `src/worker.js`: real Python loading and execution.
 - `src/app.js`: drafts, run lifecycle, trace inspection and reading marks.

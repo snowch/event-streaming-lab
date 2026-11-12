@@ -3,6 +3,7 @@ import {spawn,execFileSync} from 'node:child_process';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {lessons} from '../src/lessons.mjs';
+import {chapters} from '../src/advanced.mjs';
 const samples=JSON.parse(execFileSync('python3',['tests/test_course.py','--json'],{encoding:'utf8'}));
 await fs.mkdir('test-results',{recursive:true});
 const server=spawn('python3',['-m','http.server','5174','--bind','127.0.0.1','--directory','.preview'],{stdio:'ignore'});
@@ -41,5 +42,28 @@ try{
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/lesson-mobile.png',fullPage:true});
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile lesson overflow');
  await page.goto(base);await page.screenshot({path:'test-results/overview-mobile.png',fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile overview overflow');
- assert.deepEqual(errors,[]);console.log('PASS: 10 real Wasm runs match native results; error/retry, Stop/restart, drafts, completion, themes, mobile and subpath hosting.');
+ // Advanced reading remains readable without JavaScript or any Python downloads.
+ const readingContext=await browser.newContext({javaScriptEnabled:false,viewport:{width:1440,height:1000}});
+ const reading=await readingContext.newPage();const requested=[];reading.on('request',r=>requested.push(r.url()));
+ for(const c of chapters){
+  const r=await reading.goto(base+'advanced/'+c.slug+'.html');assert.equal(r.status(),200);
+  assert.equal(await reading.locator('h1').textContent(),c.title);
+  assert.equal(await reading.locator('.topology-nodes>div').count(),4);
+  assert.ok(await reading.locator('tbody tr').count()>=3);
+  assert.ok((await reading.locator('main').innerText()).length>3000);
+ }
+ assert.equal(requested.some(url=>/\/(engine|assets)\//.test(url)),false);
+ await reading.close();await readingContext.close();
+ await page.setViewportSize({width:1440,height:1000});
+ await page.goto(base+'advanced/consistent-checkpoints.html');
+ await page.screenshot({path:'test-results/advanced-desktop.png',fullPage:true});
+ await page.locator('#reading-done').check();await page.reload();assert.equal(await page.locator('#reading-done').isChecked(),true);
+ await page.getByText('Compare your reasoning',{exact:true}).click();assert.ok(await page.locator('.practice details').last().getAttribute('open')!==null);
+ await page.setViewportSize({width:390,height:844});
+ for(const c of chapters){await page.goto(base+'advanced/'+c.slug+'.html');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),c.slug+' overflows');}
+ await page.goto(base+'advanced/consistent-checkpoints.html');await page.screenshot({path:'test-results/advanced-mobile.png',fullPage:true});
+ await page.goto(base+'advanced/zeromq-companion.html');assert.match(await page.locator('main').innerText(),/PROPOSAL/);
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'companion overflow');
+ await page.goto(base+'advanced/index.html');assert.equal(await page.locator('.reading-card').count(),9);
+ assert.deepEqual(errors,[]);console.log('PASS: 10 real Wasm runs match native results; error/retry, Stop/restart, drafts, completion, themes, mobile and subpath hosting; 9 static advanced readings, saved marks and ZeroMQ proposal.');
 }finally{await browser?.close();server.kill()}

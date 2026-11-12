@@ -46,3 +46,10 @@ if(main){
  }
  addEventListener('pagehide',()=>worker?.terminate());
 }
+
+const reading=document.querySelector('[data-reading]');
+if(reading){
+ const key='done:'+reading.dataset.reading,box=document.querySelector('#reading-done');box.checked=read(key)==='true';
+ box.onchange=()=>{const ok=save(key,String(box.checked));document.querySelector('#reading-save').textContent=ok?'Reading mark saved in this browser.':'Storage unavailable. This mark lasts for this visit.';progress()};
+ addEventListener('storage',()=>{box.checked=read(key)==='true'});
+}
