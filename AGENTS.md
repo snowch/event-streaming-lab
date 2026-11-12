@@ -1,0 +1,3 @@
+# Event Streaming Lab
+
+Apply `.agents/skills/ux/SKILL.md` and `.agents/skills/learning-design/SKILL.md` before and after changes. Keep `npm run check` green. Do not invent executed output or timing claims. Generated worked output comes from the same Python examples as the editors. Keep the reading path usable without loading Python. Explain state/reset/Stop semantics. RxPY is a local stream library: do not claim Kafka, Flink or Spark are running, or that teaching models demonstrate distributed guarantees. Preserve Pages-relative paths and pinned self-hosted runtime assets. Keep reading marks separate from run success.

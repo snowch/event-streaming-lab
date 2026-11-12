@@ -1,0 +1,1 @@
+{"name":"event-streaming-lab","version":"1.0.0","private":true,"type":"module","scripts":{"build":"node scripts/build.mjs","dev":"npm run build && python3 -m http.server 5173 --directory .preview","check":"python3 tests/test_course.py && npm run build && node tests/browser.mjs"},"dependencies":{"pyodide":"0.27.7"},"devDependencies":{"playwright":"1.65.0"}}

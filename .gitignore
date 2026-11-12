@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.preview/
+assets/
+__pycache__/
+test-results/
+.venv/
