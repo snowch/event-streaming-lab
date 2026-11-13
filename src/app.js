@@ -6,6 +6,7 @@ function progress(){document.querySelectorAll('[data-progress]').forEach(el=>{el
 progress();addEventListener('storage',progress);
 $('#theme').onclick=()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=theme;save('theme',theme)};
 const narrow=matchMedia('(max-width: 900px)');const collapse=()=>{if(narrow.matches)document.querySelector('.contents')?.removeAttribute('open')};collapse();narrow.addEventListener('change',collapse);
+const currentLink=document.querySelector('.contents [aria-current]');const rail=document.querySelector('.sidebar');if(currentLink&&rail&&!narrow.matches)rail.scrollTop=Math.max(0,currentLink.offsetTop-rail.clientHeight/2);
 const main=$('[data-lesson]');
 if(main){
  const lesson=lessons[Number(main.dataset.lesson)], editor=$('#code');let worker,timer,runRecord,busy=false;

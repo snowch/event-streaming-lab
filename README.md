@@ -2,15 +2,15 @@
 
 [Read the course](https://snowch.github.io/event-streaming-lab/)
 
-Ten complete browser investigations about events, state, windows, event time, replay, enrichment, queues, recovery, partitions and consumer positions. Every lesson has a practical question, definitions, optional prediction, editable Python, generated worked evidence, a change-one-thing experiment, progressive hints, a transfer question and primary references.
+A six-part, 30-chapter course with 21 executable investigations and nine distributed-systems readings. The path follows bicycle-shop orders through contracts, logs, event-time progress, state, joins, failures, performance and an incident capstone. There is no fixed duration promise: readers make predictions, change policies, inspect evidence and complete independent transfer tasks.
 
-Real RxPY 6.1.0 runs in Pyodide 0.27.7 inside a Web Worker. The watermark/window policy, queue, crash schedule and partitioned log are explicit teaching models, not implementations of Kafka/Flink guarantees. No broker or hosted Python backend is used.
+[Course map](https://snowch.github.io/event-streaming-lab/#curriculum) · [Native performance guide](https://snowch.github.io/event-streaming-lab/performance.html) · [Curriculum and coverage](docs/curriculum.md)
 
-## Advanced reading and companion proposal
+Every executable chapter includes an operation account for work, state, movement, progress and recovery. Exact examples generate the static worked results and execute in real Chromium/Pyodide. The nine reading chapters are interleaved at their prerequisite points; all earlier URLs and `esl:` draft/reading keys remain valid. The capstone requires baseline/broken/repaired run records and an incident explanation.
 
-[Inside a distributed streaming system](https://snowch.github.io/event-streaming-lab/advanced/) adds nine reading chapters: parallel state, watermarks across inputs, retention/timers, consistent checkpoints, external effects, backpressure, rescaling/skew, changing join results and operations. Each includes a relationship diagram, an authored worked trace, framework distinctions, progressive hints, a transfer question and primary sources. They are static HTML and read without JavaScript or Python.
+Real RxPY 6.1.0 runs in Pyodide 0.27.7 inside a Web Worker. Watermark/correction policies, session merging, queueing, log/cursor and crash schedules are explicit teaching models, not Kafka/Flink implementations. No hosted Python service or live broker is used. The performance download runs genuine local RxPY and direct-loop trials with independent answer checks; its service-throughput boundary is distinct from modeled latency and distributed system capacity.
 
-The [ZeroMQ companion proposal](https://snowch.github.io/event-streaming-lab/advanced/zeromq-companion.html) evaluates the supplied 2013 Code Connected PDF and outlines original native PyZMQ exercises. It is a proposal, not a companion implementation or a browser networking claim.
+The [ZeroMQ companion proposal](https://snowch.github.io/event-streaming-lab/advanced/zeromq-companion.html) remains a proposal, not part of this implementation.
 
 ## Develop
 
@@ -32,13 +32,16 @@ npx playwright install --with-deps chromium
 npm run check
 ```
 
-Outside CI the test runner uses `/usr/bin/chromium`, or `CHROMIUM_PATH`. In CI it uses Playwright's pinned Chromium. All ten published examples run natively and in actual Chromium/Wasm; results must match. Tests also cover Python error/retry, infinite-loop Stop/restart, stale output, saved drafts, explicit reading progress, themes, mobile overflow and `/event-streaming-lab/` hosting. Screenshots go to `test-results/`.
+Outside CI the test runner uses `/usr/bin/chromium`, or `CHROMIUM_PATH`. In CI it uses Playwright's pinned Chromium. All 21 published examples run natively and in actual Chromium/Wasm; results must match. Tests also cover Python error/retry, infinite-loop Stop/restart, stale output, saved drafts, explicit reading progress, themes, mobile overflow and `/event-streaming-lab/` hosting. Screenshots go to `test-results/`.
 
 The Pages workflow checks pushes and pull requests. Successful pushes to main deploy `dist/` through GitHub Actions. Set the repository's Pages source to GitHub Actions.
 
 ## Structure
 
-- `src/lessons.mjs`: ordered curriculum, prose, Python examples, hints and transfer tasks.
+- `src/catalog.mjs`: one authoritative six-part sequence across all 30 chapters.
+- `src/lessons.mjs`, `src/expanded.mjs`: executable prose, examples, hints and independent tasks.
+- `src/depth.mjs`: algorithm and implementation cost accounts.
+- `harnesses/native-benchmark.py`: verified local service-throughput trials.
 - `src/advanced.mjs`, `scripts/advanced.mjs`: advanced chapter content and static renderer.
 - `python/course.py`: inspectable, bounded teaching helpers.
 - `src/worker.js`: real Python loading and execution.

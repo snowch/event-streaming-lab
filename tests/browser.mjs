@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {lessons} from '../src/lessons.mjs';
 import {chapters} from '../src/advanced.mjs';
+import {order} from '../src/catalog.mjs';
 const samples=JSON.parse(execFileSync('python3',['tests/test_course.py','--json'],{encoding:'utf8'}));
 await fs.mkdir('test-results',{recursive:true});
 const server=spawn('python3',['-m','http.server','5174','--bind','127.0.0.1','--directory','.preview'],{stdio:'ignore'});
@@ -16,14 +17,16 @@ try{
  await context.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
  const base='http://127.0.0.1:5174/event-streaming-lab/';
  await page.goto(base);await page.screenshot({path:'test-results/overview-desktop.png',fullPage:true});
- assert.equal(await page.locator('.lesson-card').count(),lessons.length);
+ assert.equal(await page.locator('.lesson-card').count(),30);
  for(let i=0;i<lessons.length;i++){
   await page.goto(base+'lessons/'+lessons[i].slug+'.html');
+  assert.equal(await page.locator('.underhood tbody tr').count(),5);
+  if(lessons[i].slug==='resolve-the-streaming-incident'){await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
   await page.locator('#run').click();
   await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Completed')||document.querySelector('#status').textContent.includes('error'),undefined,{timeout:90000});
   assert.match(await page.locator('#status').textContent(),/Completed/);
   assert.deepEqual(JSON.parse(await page.locator('#output').textContent()),samples[i],lessons[i].slug);
-  if(i===3){await page.locator('#visual').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/watermark-desktop.png'});await page.getByRole('button',{name:'Next trace step',exact:true}).click();}
+  if(lessons[i].slug==='wait-for-late-events'){await page.locator('#visual').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/watermark-desktop.png'});await page.getByRole('button',{name:'Next trace step',exact:true}).click();}
   await page.locator('#done').check();
  }
  await page.goto(base+'lessons/'+lessons[0].slug+'.html');
@@ -65,5 +68,6 @@ try{
  await page.goto(base+'advanced/zeromq-companion.html');assert.match(await page.locator('main').innerText(),/PROPOSAL/);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'companion overflow');
  await page.goto(base+'advanced/index.html');assert.equal(await page.locator('.reading-card').count(),9);
- assert.deepEqual(errors,[]);console.log('PASS: 10 real Wasm runs match native results; error/retry, Stop/restart, drafts, completion, themes, mobile and subpath hosting; 9 static advanced readings, saved marks and ZeroMQ proposal.');
+ await page.goto(base+'performance.html');assert.match(await page.locator('main').innerText(),/native-benchmark.py/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ assert.deepEqual(errors,[]);console.log('PASS: 21 real Wasm runs match native results; error/retry, Stop/restart, drafts, completion, themes, mobile and subpath hosting; 9 static advanced readings, saved marks and ZeroMQ proposal.');
 }finally{await browser?.close();server.kill()}
