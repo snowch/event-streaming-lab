@@ -32,15 +32,15 @@ await fs.copyFile('node_modules/fflate/LICENSE','dist/engine/FFLATE-LICENSE');
 for(const name of ['LICENSE-MIT','LICENSE-APACHE'])await fs.copyFile('node_modules/@bjorn3/browser_wasi_shim/'+name,'dist/engine/wasi/'+name);
 await fs.writeFile('dist/.nojekyll','');
 await fs.writeFile('dist/favicon.svg','<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#122824"/><path d="M8 14h12l5 12h8M8 26h7l5-12h13" fill="none" stroke="#a3ddc2" stroke-width="3"/></svg>');
-const pageSources=['src/app.js', 'src/book.css', 'src/lessons.mjs', 'src/linux-worker.js', 'src/warm-session.mjs', 'src/wasi-poll.mjs', 'src/runtime-cache.mjs', 'python/course.py', 'python/kafka_lab.py', 'python/live_kafka.py', 'python/patterns.py', 'python/recovery_drill.py', 'python/runner.py', 'python/session_runner.py'];
+const pageSources=['src/catalog.mjs','src/patterns.mjs','src/app.js', 'src/book.css', 'src/lessons.mjs', 'src/linux-worker.js', 'src/warm-session.mjs', 'src/wasi-poll.mjs', 'src/runtime-cache.mjs', 'python/course.py', 'python/kafka_lab.py', 'python/live_kafka.py', 'python/patterns.py', 'python/recovery_drill.py', 'python/runner.py', 'python/session_runner.py'];
 const revisionHash=createHash('sha256');
 for(const file of pageSources)revisionHash.update(await fs.readFile(file));
 const revision=revisionHash.digest('hex').slice(0,12);
 const uiRevision=revision;
 // Keep the page, worker bridge and helpers on the same published build.
-for(const file of ['app.js','worker.js','warm-session.mjs']){
+for(const file of ['app.js','worker.js','warm-session.mjs','lessons.mjs']){
  let source=await fs.readFile('dist/'+file,'utf8');
- for(const dependency of ['lessons.mjs','wasi-poll.mjs','warm-session.mjs','runtime-cache.mjs']){
+ for(const dependency of ['lessons.mjs','catalog.mjs','patterns.mjs','wasi-poll.mjs','warm-session.mjs','runtime-cache.mjs']){
   source=source.replaceAll("'./"+dependency+"'", "'./"+dependency+'?v='+revision+"'");
  }
  await fs.writeFile('dist/'+file,source);
