@@ -9,7 +9,8 @@
     "check": "node tests/catalog.mjs && python3 tests/test_course.py && npm run build && node tests/links.mjs && node tests/browser.mjs"
   },
   "dependencies": {
-    "pyodide": "0.27.7"
+    "@bjorn3/browser_wasi_shim": "0.4.2",
+    "fflate": "0.8.3"
   },
   "devDependencies": {
     "playwright": "1.65.0"

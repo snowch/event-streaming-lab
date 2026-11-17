@@ -1,6 +1,12 @@
-"""Bounded teaching models. RxPY operators execute; distributed systems are not emulated."""
-import reactivex as rx
-from reactivex import operators as ops
+"""Real Bytewax/Kafka experiments and explicitly labelled reference policies."""
+from datetime import datetime, timedelta, timezone
+import json
+import bytewax.operators as op
+import bytewax.operators.windowing as win
+from bytewax.dataflow import Dataflow
+from bytewax.testing import TestingSink, TestingSource, run_main
+
+EPOCH = datetime(2022, 1, 1, tzinfo=timezone.utc)
 
 ORDERS = [
     {'id':'a','shop':'North','amount':12,'time':0},
@@ -10,33 +16,36 @@ ORDERS = [
     {'id':'e','shop':'South','amount':9,'time':25},
 ]
 
-def values(stream):
-    out, errors = [], []
-    stream.subscribe(out.append, errors.append)
-    if errors: raise errors[0]
+def collect(flow, stream):
+    """Execute a real one-worker dataflow and collect its finite output."""
+    out = []
+    op.output('collect', stream, TestingSink(out))
+    run_main(flow, epoch_interval=timedelta(0))
     return out
 
 def event_time(wait=5):
-    """One partition. Late iff timestamp < watermark; EOF flush is explicit."""
-    def step(previous, item):
-        state = {'maximum':previous['maximum'], 'watermark':previous['watermark'],
-                 'open':{k:list(v) for k,v in previous['open'].items()},
-                 'closed':list(previous['closed']), 'late':list(previous['late']),
-                 'arrival':item['id'] if item else 'EOF'}
-        if item:
-            state['maximum'] = max(state['maximum'], item['time'])
-            state['watermark'] = state['maximum'] - wait
-            if item['time'] < state['watermark']: state['late'].append(item['id'])
-            else: state['open'].setdefault(item['time']//10, []).append(item)
-        for window in sorted(list(state['open'])):
-            if item is None or (window+1)*10 <= state['watermark']:
-                events=state['open'].pop(window)
-                state['closed'].append({'window':f'[{window*10}, {(window+1)*10})',
-                    'ids':[e['id'] for e in events], 'total':sum(e['amount'] for e in events)})
-        return state
-    seed={'maximum':-1,'watermark':None,'open':{},'closed':[],'late':[]}
-    trace=values(rx.from_iterable([*ORDERS,None]).pipe(ops.scan(step,seed=seed)))
-    return {'windows':trace[-1]['closed'],'late':trace[-1]['late'],'trace':trace}
+    """Bytewax EventClock and collect_window; frozen wall time, EOF flush."""
+    if wait < 0: raise ValueError('wait must be nonnegative')
+    flow = Dataflow('event_time')
+    source = op.input('orders', flow, TestingSource(ORDERS, batch_size=1))
+    keyed = op.key_on('key', source, lambda _: 'ALL')
+    clock = win.EventClock(lambda e: EPOCH + timedelta(seconds=e['time']),
+        wait_for_system_duration=timedelta(seconds=wait), now_getter=lambda: EPOCH,
+        to_system_utc=lambda _: None)
+    windowed = win.collect_window('windows', keyed, clock,
+        win.TumblingWindower(length=timedelta(seconds=10), align_to=EPOCH))
+    closed, late = [], []
+    op.output('closed', windowed.down, TestingSink(closed))
+    op.output('late', windowed.late, TestingSink(late))
+    run_main(flow)
+    windows = [{'window':f'[{wid*10}, {(wid+1)*10})',
+                'ids':[e['id'] for e in events], 'total':sum(e['amount'] for e in events)}
+               for _, (wid, events) in sorted(closed, key=lambda row:row[1][0])]
+    late_ids = [e['id'] for _, (_, e) in late]
+    return {'windows':windows, 'late':late_ids,
+            'trace':[{'emission':'closed window', **row} for row in windows] +
+                    [{'emission':'late side output', 'id':i} for i in late_ids],
+            'boundary':'Real Bytewax EventClock; frozen wall clock; EOF flushes open windows.'}
 
 def queue_run(capacity=3, offered=2, service=1):
     """Discrete ticks: arrivals, drop newest if full, then service. Not Rx backpressure."""
@@ -51,7 +60,7 @@ def queue_run(capacity=3, offered=2, service=1):
         trace.append({'tick':tick,'offered':incoming,'completed':completed,'queued':backlog,'dropped':rejected})
     return {'trace':trace,'dropped':dropped,'queued':backlog}
 
-def recover(idempotent=True):
+def failure_schedule(idempotent=True):
     """Crash after writing b, before committing its offset. Restart replays b."""
     deliveries=['a','b','b','c']; sink={}; receipts=[]
     def write(event):
@@ -59,24 +68,39 @@ def recover(idempotent=True):
         if idempotent: sink[event]=10
         else: sink[event]=sink.get(event,0)+10
         return {'delivery':event,'total':sum(sink.values())}
-    trace=values(rx.from_iterable(deliveries).pipe(ops.map(write)))
+    trace=[write(event) for event in deliveries]
     return {'receipts':receipts,'stored_total':sum(sink.values()),'trace':trace,
             'boundary':'A deterministic crash schedule, not durable checkpoint recovery.'}
 
 def partition_log():
-    """Explicit routing, offsets per partition. A list model, not a Kafka broker."""
-    partitions={'0':[],'1':[]}
-    for order in ORDERS:
-        partition='0' if order['shop']=='North' else '1'
-        partitions[partition].append({'offset':len(partitions[partition]),'id':order['id']})
-    return partitions
+    """Bytewax KafkaSource reads real protocol records from a mock broker."""
+    from kafka_lab import partition_log as experiment
+    return experiment(ORDERS)
 
 def consume_log(committed=1):
-    """Committed position means next offset to read. Groups have independent cursors."""
-    log=partition_log()
-    return {'sales':{p:[row for row in rows if row['offset']>=committed] for p,rows in log.items()},
-            'audit':log,
-            'note':'Both groups can read the same retained log; committed is the next offset.'}
+    """Real client commits and reads two independent simulated Kafka groups."""
+    from kafka_lab import consume_log as experiment
+    return experiment(ORDERS, committed)
+
+def recover(checkpoint=True):
+    """Run the process-kill/restart experiment; state survives this process kill."""
+    from recovery_drill import recover as experiment
+    return experiment(checkpoint)
+
+def timed_windows(width=10, slide=10):
+    """Real Bytewax event-time windows; fixed wait keeps all four events."""
+    if width <= 0 or slide <= 0: raise ValueError('width and slide must be positive')
+    flow = Dataflow('timed_windows')
+    source = op.input('events', flow, TestingSource([(1,'a'),(7,'b'),(12,'c'),(18,'d')], batch_size=1))
+    keyed = op.key_on('key', source, lambda _: 'ALL')
+    clock = win.EventClock(lambda e:EPOCH+timedelta(seconds=e[0]),
+        wait_for_system_duration=timedelta(seconds=30), now_getter=lambda:EPOCH,
+        to_system_utc=lambda _:None)
+    windowed = win.collect_window('windows', keyed, clock,
+        win.SlidingWindower(length=timedelta(seconds=width), offset=timedelta(seconds=slide), align_to=EPOCH))
+    rows = collect(flow, windowed.down)
+    return [{'start':wid*slide, 'end':wid*slide+width, 'events':[e[1] for e in events]}
+            for _, (wid,events) in sorted(rows,key=lambda row:row[1][0])]
 
 
 def retained_log(start=2, compact=False):
@@ -101,15 +125,18 @@ def clock_windows():
 
 
 def sessions(gap=5):
-    if gap<0: raise ValueError('gap must be nonnegative')
-    active=[];trace=[]
-    for event in [0,8,4,20]:
-        touching=[s for s in active if event<=s['last']+gap and event+gap>=s['first']]
-        untouched=[s for s in active if s not in touching]
-        times=sorted([event]+[t for s in touching for t in s['events']])
-        active=sorted(untouched+[{'first':times[0],'last':times[-1],'events':times}],key=lambda s:s['first'])
-        trace.append({'arrival':event,'sessions':[dict(s) for s in active]})
-    return {'trace':trace,'sessions':active,'gap':gap}
+    if gap<=0: raise ValueError('gap must be positive')
+    flow=Dataflow('sessions')
+    source=op.input('events',flow,TestingSource([0,8,4,20],batch_size=1))
+    keyed=op.key_on('key',source,lambda _:'ALL')
+    clock=win.EventClock(lambda t:EPOCH+timedelta(seconds=t),
+        wait_for_system_duration=timedelta(seconds=30),now_getter=lambda:EPOCH,
+        to_system_utc=lambda _:None)
+    windowed=win.collect_window('sessions',keyed,clock,win.SessionWindower(gap=timedelta(seconds=gap)))
+    rows=collect(flow,windowed.down)
+    final=sorted([{'first':min(events),'last':max(events),'events':sorted(events)}
+                  for _,(_,events) in rows],key=lambda row:row['first'])
+    return {'sessions':final,'gap':gap,'trace':[{'emission':'closed session',**row} for row in final]}
 
 
 def corrections(lateness=5):
@@ -159,7 +186,7 @@ def temporal_lookup(history=True):
 
 
 def operation_effort(n=8, keys=2):
-    """Count reference algorithms, not CPU cycles or RxPY internal operations."""
+    """Count reference algorithms, not CPU cycles or Bytewax internal operations."""
     if not 1<=n<=10000 or not 1<=keys<=n: raise ValueError('Use 1 <= keys <= n <= 10000')
     seen=[];comparisons=0;counts={};calls=0
     for i in range(n):
@@ -206,21 +233,30 @@ def capstone(deduplicate=True, allowed_lateness=5):
              {'watermark':10}, {'id':'b','time':4,'amount':5},
              {'id':'bad','time':6,'amount':-3}, {'watermark':15},
              {'id':'c','time':6,'amount':7}]
-    seen=set();wm=-1;total=0;late=[];invalid=[];duplicates=[];sink={};revision=0;trace=[]
-    for item in actions:
-        if 'watermark' in item:
-            wm=item['watermark']
-        elif item['amount']<0:
-            invalid.append(item['id'])
-        elif deduplicate and item['id'] in seen:
-            duplicates.append(item['id'])
-        elif wm>=10+allowed_lateness:
-            late.append(item['id'])
+    flow=Dataflow('incident')
+    source=op.input('actions',flow,TestingSource(actions,batch_size=1))
+    keyed=op.key_on('window',source,lambda _:'window-0')
+    def apply(state,item):
+        old=state or {'seen':set(),'watermark':-1,'total':0,'late':[],
+                     'invalid':[],'duplicates':[],'sink':{},'revision':0,'trace':[]}
+        state={**old,'seen':set(old['seen']),'late':list(old['late']),
+               'invalid':list(old['invalid']),'duplicates':list(old['duplicates']),
+               'sink':dict(old['sink']),'trace':list(old['trace'])}
+        if 'watermark' in item: state['watermark']=item['watermark']
+        elif item['amount']<0: state['invalid'].append(item['id'])
+        elif deduplicate and item['id'] in state['seen']: state['duplicates'].append(item['id'])
+        elif state['watermark']>=10+allowed_lateness: state['late'].append(item['id'])
         else:
-            seen.add(item['id']);total+=item['amount']
-        if wm>=10 and (not sink or sink[0]['total']!=total):
-            revision+=1;sink[0]={'revision':revision,'total':total}
-        trace.append({'input':item,'watermark':wm,'total':total,'revision':revision,
-                      'late':list(late),'invalid':list(invalid),'duplicates':list(duplicates)})
-    return {'sink':sink,'late':late,'invalid':invalid,'duplicates':duplicates,'trace':trace,
-            'note':'One key/window, predetermined watermark actions; no durable checkpoint or actual crash.'}
+            state['seen'].add(item['id']);state['total']+=item['amount']
+        if state['watermark']>=10 and (not state['sink'] or state['sink'][0]['total']!=state['total']):
+            state['revision']+=1
+            state['sink'][0]={'revision':state['revision'],'total':state['total']}
+        state['trace'].append({'input':item,'watermark':state['watermark'],
+             'total':state['total'],'revision':state['revision'],
+             'late':list(state['late']),'invalid':list(state['invalid']),
+             'duplicates':list(state['duplicates'])})
+        output={key:state[key] for key in ['sink','late','invalid','duplicates','trace']}
+        output['note']='Real Bytewax keyed state; authored watermark controls/correction policy; no external transactional sink or configured checkpoint.'
+        return state,output
+    updated=op.stateful_map('policy',keyed,apply)
+    return collect(flow,updated)[-1][1]

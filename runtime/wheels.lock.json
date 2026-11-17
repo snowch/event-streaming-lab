@@ -1,0 +1,30 @@
+[
+  {
+    "package": "bytewax",
+    "version": "0.21.1",
+    "file": "bytewax-0.21.1-cp312-cp312-manylinux_2_31_x86_64.whl",
+    "sha256": "a118a61a5fc5a1849605e062f80e897922dbdadd37790cf8379e8f1e000d463c",
+    "source": "https://files.pythonhosted.org/packages/1f/66/47d1dbdd2a035074b2be3eac983d15742cc2749fee24aa3cc0c505277622/bytewax-0.21.1-cp312-cp312-manylinux_2_31_x86_64.whl"
+  },
+  {
+    "package": "confluent-kafka",
+    "version": "2.6.1",
+    "file": "confluent_kafka-2.6.1-cp312-cp312-manylinux_2_28_x86_64.whl",
+    "sha256": "298aa323eb8507862ccfa619367667b41ab76ddf3657e8a45dafe4b270208257",
+    "source": "https://files.pythonhosted.org/packages/05/44/b387e65fa2a9ef73adbc10fb2e81d0daed9a76bd5492a15a7321a69809c9/confluent_kafka-2.6.1-cp312-cp312-manylinux_2_28_x86_64.whl"
+  },
+  {
+    "package": "prometheus-client",
+    "version": "0.26.0",
+    "file": "prometheus_client-0.26.0-py3-none-any.whl",
+    "sha256": "fa93d06737aa02bacd05794768508bb97d2fbee28cb3bca04eaae92f0ca953d6",
+    "source": "https://files.pythonhosted.org/packages/eb/a3/b69efbf4143b5b9859b977770bbbabcc2796b702fa69dc40271e45cd5a56/prometheus_client-0.26.0-py3-none-any.whl"
+  },
+  {
+    "package": "typing-extensions",
+    "version": "4.16.0",
+    "file": "typing_extensions-4.16.0-py3-none-any.whl",
+    "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+    "source": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl"
+  }
+]

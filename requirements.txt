@@ -1,2 +1,4 @@
-reactivex==6.1.0
+bytewax==0.21.1
+confluent-kafka==2.6.1
+prometheus-client==0.26.0
 typing-extensions==4.16.0

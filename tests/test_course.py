@@ -7,16 +7,18 @@ lessons=json.loads(subprocess.check_output(['node','--input-type=module','-e',"i
 results=[];by_slug={}
 for lesson in lessons:
     namespace={};exec(lesson['code'],namespace);results.append(namespace['result']);by_slug[lesson['slug']]=namespace['result']
+assert by_slug['stream-live-through-kafka']['live_arrivals']==4
+assert [r['total'] for r in by_slug['stream-live-through-kafka']['records']]==[12,8,17,24,17]
 assert [e['id'] for e in by_slug['follow-an-event']]==['a','e']
-assert by_slug['keep-state-by-key'][-1]=={'shop':'South','total':17}
-assert by_slug['close-a-window']==[{'at':10.0,'events':['a','b']},{'at':20.0,'events':['c','d']},{'at':25.0,'events':[]}]
+assert by_slug['keep-state-by-key'][-1]=={'arrival':'e','shop':'South','total':17}
+assert by_slug['close-a-window']==[{'start':0,'end':10,'events':['a','b']},{'start':10,'end':20,'events':['c','d']}]
 assert by_slug['wait-for-late-events']['late']==['d']
 assert event_time(30)['late']==[] and event_time(30)['windows'][0]['total']==24
 assert by_slug['replay-without-double-counting']==[41]
 assert by_slug['enrich-a-stream'][1]['region']=='unknown'
 for capacity in (1,3,6):
  r=queue_run(capacity);assert sum(t['offered'] for t in r['trace'])==sum(t['completed'] for t in r['trace'])+r['dropped']+r['queued']
-assert recover()['stored_total']==30 and recover(False)['stored_total']==40
+assert recover()['outputs']==[12,20,25,32,36] and recover(False)['replayed_records']==3
 assert by_slug['read-a-partitioned-log']['0'][1]=={'offset':1,'id':'c'}
 assert by_slug['give-consumers-their-own-position']['sales']['1']==[{'offset':1,'id':'e'}]
 assert by_slug['evolve-an-event-schema']==[{'id':'a','pence':1200},{'id':'b','pence':850},{'id':'c','rejected':'unknown version'},{'id':'d','rejected':'invalid amount'}]
@@ -42,7 +44,7 @@ r=capstone();assert r['sink']=={0:{'revision':2,'total':15}} and r['late']==['c'
 assert capstone(False)['sink'][0]['total']==25
 assert capstone(True,0)['sink'][0]['total']==10
 spec=importlib.util.spec_from_file_location('native_benchmark',ROOT/'harnesses/native-benchmark.py');bench=importlib.util.module_from_spec(spec);spec.loader.exec_module(bench)
-for backend in ('rx','direct'):
+for backend in ('bytewax','direct'):
  for n in (1,9,10,10000):
   measured=bench.run(n,1,backend);assert measured['trials'][0]['actual']==sum(i*2 for i in range(n) if i%2==0)
-print(json.dumps(results) if '--json' in sys.argv else '21 exact lesson examples, boundary/variant invariants and both measured native backends passed.')
+print(json.dumps(results) if '--json' in sys.argv else '22 exact lesson examples, boundary/variant invariants and both measured native backends passed.')
