@@ -109,7 +109,9 @@ console and trace. Export run keeps that successful source and output. Run and
 Stop return keyboard focus to the next available control, and download progress
 appears while a measured total is available. Restore code keeps the most
 recently replaced draft, including across reloads when storage is available.
-Earlier RxPY migration downloads remain available separately.
+Recovered code opens from the beginning of the file. Earlier RxPY migration
+downloads remain available separately. Technical detail uses the same readable
+palette as successful console output in both themes.
 
 `npm run check:core` passed all 30 native examples, the new variants, both
 native performance backends, catalogue and WASI checks, and static/interface
@@ -117,6 +119,8 @@ checks across 51 pages. An independent Chromium walkthrough ran the original
 clock and join examples and all stated edits in actual browser Linux. It
 verified Run and Stop focus, retained console and trace after a Python error,
 an unchanged run JSON export, and draft recovery after reload at phone width.
+Restoring and recovering the beginning of the source was checked at 320px,
+390px and 1440px.
 The publication workflow runs the complete Linux browser matrix.
 
 These checks address instructions, execution and interaction. No learner study
