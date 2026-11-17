@@ -9,7 +9,6 @@ import os
 import subprocess
 import platform
 
-print('ESL_PHASE running',flush=True)
 buffer=io.StringIO()
 namespace={'__name__':'__main__'}
 try:
@@ -22,6 +21,7 @@ try:
     Path('/proc/self/uid_map').write_text(f'0 {uid} 1')
     Path('/proc/self/gid_map').write_text(f'0 {gid} 1')
     subprocess.run(['ip','link','set','lo','up'],check=True,capture_output=True)
+    print('ESL_PHASE running',flush=True)
     with redirect_stdout(buffer),redirect_stderr(buffer):
         source=Path('/mnt/lab/python/experiment.py').read_text()
         exec(compile(source,'experiment.py','exec'),namespace)
@@ -30,5 +30,5 @@ try:
     # Serialize inside try: unsupported values are a visible retryable error.
     encoded=json.dumps(response,allow_nan=False)
 except BaseException:
-    encoded=json.dumps({'type':'error','message':traceback.format_exc(),'stdout':buffer.getvalue()})
+    encoded=json.dumps({'type':'error','origin':'python','message':traceback.format_exc(),'stdout':buffer.getvalue()})
 print('ESL_RESULT '+encoded,flush=True)

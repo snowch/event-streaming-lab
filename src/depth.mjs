@@ -154,7 +154,7 @@ const costs = {
     "No checkpoint is configured. The controller stops the engine after five verified outputs; destroying either owner loses its volatile state."
   ]
 };
-export function depth(lesson){return costs[lesson.slug]}
+export function depth(lesson){return costs[lesson.slug]||lesson.costs}
 export const mechanism = {
   "follow-an-event": [
     "Trace a discarded order",

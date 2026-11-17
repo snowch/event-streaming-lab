@@ -1,5 +1,6 @@
 import {WASI,File,Directory,OpenFile,PreopenDirectory,ConsoleStdout} from './engine/wasi/index.js';
 import {gunzipSync} from './engine/fflate.mjs';
+import {clockPoll} from './wasi-poll.mjs';
 let ready,busy=false;
 const decoder=new TextDecoder(),encoder=new TextEncoder();
 const phase=(message,extra={})=>postMessage({type:'loading',message,...extra});
@@ -29,7 +30,7 @@ async function setup(){
  const module=await WebAssembly.compile(engineBytes);
  phase('Preparing the native Python filesystem…');
  const archive=gunzipSync(bytes[3]);
- const names=['course.py','kafka_lab.py','recovery_drill.py','live_kafka.py','runner.py'];
+ const names=['course.py','kafka_lab.py','recovery_drill.py','live_kafka.py','patterns.py','runner.py'];
  const helpers=await Promise.all(names.map(async name=>{
   const r=await fetch(new URL('./python/'+name,import.meta.url));if(!r.ok)throw Error('Could not load '+name);
   return [name,new Uint8Array(await r.arrayBuffer())];
@@ -66,37 +67,22 @@ exec /tmp/ld.so --library-path "$BASE/glibc" "$BASE/python/bin/python3.12" -u "$
  return tree.contents;
 }
 
-function clockPoll(wasi,input,output,count,nEvents){
- // Host clock/closed stdin only. Kafka sockets stay on Linux loopback. No relay,
- // SharedArrayBuffer, service worker or cross-origin isolation is needed.
- const memory=new DataView(wasi.inst.exports.memory.buffer);let written=0;
- for(let i=0;i<count;i++){
-  const sub=input+i*48;if(memory.getUint8(sub+8)!==0)continue;
-  const timeout=Number(memory.getBigUint64(sub+24,true))/1e6;
-  const absolute=memory.getUint16(sub+40,true)&1,clock=memory.getUint32(sub+16,true);
-  const now=clock===0?Date.now():performance.now();
-  const end=performance.now()+Math.max(0,Math.min(absolute?timeout-now:timeout,10));
-  while(performance.now()<end){/* bounded worker-only wait */}
-  const event=output+written*32;
-  memory.setBigUint64(event,memory.getBigUint64(sub,true),true);
-  memory.setUint16(event+8,0,true);memory.setUint8(event+10,0);written++;
- }
- memory.setUint32(nEvents,written,true);return 0;
-}
 self.onmessage=async({data})=>{
  if(busy)return;busy=true;
  try{
   ready ||= setup().catch(error=>{ready=null;throw error});
   const {module,archive,helpers}=await ready;
-  phase('Starting a fresh Linux guest…');let terminal='',runningSent=false;
+  phase('Starting a fresh Linux guest…',{stage:'boot'});let terminal='',runningSent=false;
   const stdout=new ConsoleStdout(bytes=>{
    if(!bytes.length)return;terminal+=decoder.decode(bytes,{stream:true});
    if(terminal.includes('ESL_PHASE running')&&!runningSent){runningSent=true;postMessage({type:'running'})}
    if(terminal.length>4000000)terminal=terminal.slice(-2000000);
   });
   const command='cp /mnt/lab/bundle/glibc/ld-linux-x86-64.so.2 /tmp/ld.so && chmod +x /tmp/ld.so && cp /mnt/lab/run-python /tmp/run-python && chmod +x /tmp/run-python && /tmp/run-python /mnt/lab/python/runner.py';
+  const stdin=new OpenFile(new File(new Uint8Array()));
+  stdin.fd_read=()=>({ret:6,data:null}); // no keyboard channel; not an EOF signal
   const wasi=new WASI(['engine','-entrypoint','/bin/sh','--','-c',command],[],[
-   new OpenFile(new File(new Uint8Array())),stdout,stdout,
+   stdin,stdout,stdout,
    new PreopenDirectory('/mnt/lab',filesystem(archive,helpers,data.source)),
   ]);
   wasi.wasiImport.poll_oneoff=(...args)=>clockPoll(wasi,...args);
@@ -105,6 +91,6 @@ self.onmessage=async({data})=>{
   const frames=terminal.split(/\r?\n/).filter(line=>line.startsWith('ESL_RESULT '));
   if(!frames.length)throw Error('The Linux guest exited without a result. Stop and retry.\n'+terminal.slice(-5000));
   postMessage(JSON.parse(frames.at(-1).slice('ESL_RESULT '.length)));
- }catch(error){postMessage({type:'error',message:String(error.stack||error)})}
+ }catch(error){postMessage({type:'error',origin:'runtime',message:String(error.stack||error)})}
  finally{busy=false}
 };

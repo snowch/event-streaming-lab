@@ -1,3 +1,5 @@
+import {patternLessons} from './patterns.mjs';
+import {order} from './catalog.mjs';
 // The complete executable curriculum. Every code block is executed in tests.
 export const lessons = [
 {
@@ -76,7 +78,7 @@ result = collect(flow, normalized)`,
   ],
   "answer": "No. Specify alert ownership, original payload and error provenance, replay identity, permissions and retention. Validate backward/forward compatibility for the actual schema format, and distinguish structural changes from changes to units or business definitions. Reprocessing must not silently duplicate earlier effects.",
   "limit": "The fixture validates four explicit envelopes. It does not implement a schema registry, a general JSON validator or a dead-letter service.",
-  "source": "https://kafka.apache.org/documentation/#design",
+  "source": "https://kafka.apache.org/44/design/design/",
   "extra": [
     [
       "Compatibility is directional",
@@ -177,7 +179,7 @@ result = retained_log(start=2, compact=True)`,
   ],
   "answer": "Not necessarily. It needs an authoritative snapshot plus a consistent log boundary, or enough retained updates and deletions to reconstruct the intended state. Kafka compaction and tombstone retention have timing and configuration details; an idealized latest-per-key pass is not a proof that every slow bootstrap is safe.",
   "limit": "This is one list-backed partition. Kafka segment deletion, asynchronous compaction, transaction visibility and timestamp-based retention are not executed.",
-  "source": "https://kafka.apache.org/documentation/#compaction",
+  "source": "https://kafka.apache.org/44/design/design/#log-compaction",
   "extra": [
     [
       "A committed position does not preserve data",
@@ -216,7 +218,7 @@ result = consume_log(committed=1)`,
   ],
   "answer": "It resumes at 2 and skips unfinished work at 1 unless another mechanism detects it. Commit-after-write can instead repeat an effect after a crash. The process-recovery drill deliberately waits for a completed checkpoint and does not test that external-write race. Coordinating source progress with sink effects needs an explicit contract; changing a position alone does not solve it.",
   "limit": "Real Kafka consumer commit/fetch requests run against an in-memory simulator. The test uses explicit assignments, without JoinGroup rebalancing or broker persistence. Bytewax KafkaSource separately manages positions through Bytewax recovery, not Kafka group commits.",
-  "source": "https://kafka.apache.org/documentation/#intro_consumers"
+  "source": "https://kafka.apache.org/44/getting-started/introduction/"
 },
 {
   "slug": "choose-the-right-clock",
@@ -594,7 +596,7 @@ result = recover(checkpoint=True)`,
   ],
   "answer": "No. A process checkpoint alone does not atomically commit an arbitrary external effect. This drill verifies source and state restoration at a controlled completed checkpoint. An uncontrolled write/checkpoint race needs sink-specific coordination or idempotency and another failure experiment.",
   "limit": "A real SIGKILL/restart inside one Linux guest, with a seekable file source and SQLite recovery. The volatile filesystem disappears with the VM. The ordinary append-only output is not transactional and this is not an end-to-end exactly-once proof.",
-  "source": "https://kafka.apache.org/documentation/#semantics",
+  "source": "https://kafka.apache.org/44/design/design/#message-delivery-semantics",
   "fixture": "Initial input: 12,8,5. The controller waits for source position 3 and state 25 in a completed checkpoint, then SIGKILLs the engine. Input becomes 12,8,5,7,4 before restart."
 },
 {
@@ -770,3 +772,6 @@ result = capstone(deduplicate=True, allowed_lateness=5)`,
   "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. a=10 twice; watermark 10; b=5; bad=−3; watermark 15; c=7. Every data event belongs to [0,10)."
 }
 ];
+
+lessons.push(...patternLessons);
+lessons.sort((a,b)=>order.findIndex(x=>x.id===a.slug)-order.findIndex(x=>x.id===b.slug));

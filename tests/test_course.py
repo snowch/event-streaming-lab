@@ -43,8 +43,21 @@ assert recovery_capacity()['catch_up_seconds']==20 and recovery_capacity(80,80)[
 r=capstone();assert r['sink']=={0:{'revision':2,'total':15}} and r['late']==['c'] and r['invalid']==['bad'] and r['duplicates']==['a']
 assert capstone(False)['sink'][0]['total']==25
 assert capstone(True,0)['sink'][0]['total']==10
+from patterns import route_events,expand_orders,materialized_view,forget_state,detect_sequence,retry_events,bounded_backfill,changing_join
+assert by_slug['route-and-quarantine']['accounted_for']==4
+assert [r['id'] for r in route_events()['accepted']]==['a','d']
+assert len(route_events(extra='{"id":"z","amount":true}')['quarantine'])==3
+assert len(route_events(extra='{"id":"z","amount":0}')['accepted'])==3
+assert expand_orders(2)['totals']=={'bell':8,'light':6,'wheel':30}
+assert materialized_view()['view']=={'B':8} and materialized_view(False)['view']=={'A':11,'B':8}
+assert forget_state()['accepted']==2 and forget_state(False)['accepted']==1
+assert len(detect_sequence()['alerts'])==2 and detect_sequence(2)['alerts']==[]
+assert retry_events()['total_attempts']==8 and retry_events(2)['success']==['a']
+assert bounded_backfill()['write_attempts']==6 and bounded_backfill(stop=3)['visible_rows']==2
+assert changing_join()['pairs']==[{'order':'o2','region':'East'}]
+assert len(changing_join('product')['pairs'])==4 and changing_join('first')['pairs']==[{'order':'o1','region':'West'}]
 spec=importlib.util.spec_from_file_location('native_benchmark',ROOT/'harnesses/native-benchmark.py');bench=importlib.util.module_from_spec(spec);spec.loader.exec_module(bench)
 for backend in ('bytewax','direct'):
  for n in (1,9,10,10000):
   measured=bench.run(n,1,backend);assert measured['trials'][0]['actual']==sum(i*2 for i in range(n) if i%2==0)
-print(json.dumps(results) if '--json' in sys.argv else '22 exact lesson examples, boundary/variant invariants and both measured native backends passed.')
+print(json.dumps(results) if '--json' in sys.argv else str(len(lessons))+' exact lesson examples, boundary/variant invariants and both measured native backends passed.')

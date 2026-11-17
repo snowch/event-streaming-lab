@@ -1,6 +1,6 @@
-# Curriculum and execution coverage
+# Comprehensive curriculum
 
-31 chapters combine 22 executable investigations with nine distributed-system readings. Basic Python is the prerequisite. Existing chapter URLs and saved-work keys are preserved; the live Kafka chapter is new. Every chapter links its prerequisite, next step and course map. No fixed duration is promised.
+46 chapters across 8 parts: 30 executable investigations and 16 substantial design/system readings. Basic Python is the entry prerequisite. Existing URLs, source-download behavior and reading marks remain valid. The expanded sequence teaches reusable patterns and production decisions alongside real engine mechanics.
 
 ## Events, logs and consumers
 
@@ -13,72 +13,93 @@ Preserve meaning and identity as records become a replayable history.
 5. **Retain or compact a log** — History and latest state answer different questions. (Explicit log model)
 6. **Give consumers their own position** — Reading does not erase the log. (Real Kafka client / simulator)
 
+## Transformation and routing patterns
+
+Choose the delivery shape, preserve error evidence and account for fan-out.
+
+7. **Choose a streaming architecture** — A work queue, a broadcast and a retained history solve different problems.
+8. **Route and quarantine events** — Give invalid records a visible destination. (Real Bytewax)
+9. **Expand and re-key a stream** — One cart becomes several independently identified lines. (Real Bytewax)
+
 ## Time, windows and late data
 
 Choose when to emit, correct and forget a result.
 
-7. **Choose the right clock** — The same order can belong to two different windows. (Explicit clock model)
-8. **Close a window** — Give an endless calculation a boundary. (Bytewax event-time windows)
-9. **Merge a session** — A late event can connect two groups. (Bytewax session windows)
-10. **Wait for late events** — Trade a faster answer for a more complete one. (Bytewax EventClock)
-11. **When can time move forward?** — Slow partitions, idle inputs and late returns.
-12. **Correct a late result** — Closing a window and forgetting it are separate decisions. (Explicit correction model)
+10. **Choose the right clock** — The same order can belong to two different windows. (Explicit clock model)
+11. **Close a window** — Give an endless calculation a boundary. (Bytewax event-time windows)
+12. **Merge a session** — A late event can connect two groups. (Bytewax session windows)
+13. **Wait for late events** — Trade a faster answer for a more complete one. (Bytewax EventClock)
+14. **When can time move forward?** — Slow partitions, idle inputs and late returns.
+15. **Correct a late result** — Closing a window and forgetting it are separate decisions. (Explicit correction model)
 
-## State, joins and changing answers
+## Stateful patterns, joins and views
 
-Trace ownership, retained history and output multiplicity.
+Choose ownership, changing-result semantics, retained history and match rules.
 
-13. **Keep state by key** — Two shops. Two running totals. (Real Bytewax)
-14. **Where does a key live?** — Partitions, exchanges and parallel state.
-15. **Enrich a stream** — A small lookup changes the meaning of a record. (Real Bytewax)
-16. **Count the join output** — One event can create more than one answer. (Bounded join reference)
-17. **Look up the past** — Latest context can rewrite yesterday. (Temporal lookup model)
-18. **When is a streaming answer final?** — Join horizons, corrections and changelog contracts.
+16. **Keep state by key** — Two shops. Two running totals. (Real Bytewax)
+17. **Where does a key live?** — Partitions, exchanges and parallel state.
+18. **Build a materialized view** — Updates replace facts; deletes must leave enough history. (Real Bytewax)
+19. **From streams to tables and back** — An append, an upsert and a retraction carry different meaning.
+20. **Enrich a stream** — A small lookup changes the meaning of a record. (Real Bytewax)
+21. **Join changing streams** — Latest values and all combinations answer different questions. (Real Bytewax)
+22. **Count the join output** — One event can create more than one answer. (Bounded join reference)
+23. **Look up the past** — Latest context can rewrite yesterday. (Temporal lookup model)
+24. **When is a streaming answer final?** — Join horizons, corrections and changelog contracts.
+25. **Detect an event sequence** — Two failures followed by success is a stateful question. (Real Bytewax)
+26. **Recognize sequences and absence** — A missing event needs a clock, not only a predicate.
 
-## Failure and recovery
+## Failure, recovery and integration
 
-Locate the consistency boundary from input identity to sink effect.
+Coordinate identity, state, retries and effects across explicit consistency boundaries.
 
-19. **Replay without double counting** — One order can have two deliveries. (Bytewax + identity policy)
-20. **When is it safe to forget?** — State, timers, expiry and the meaning of a result.
-21. **Recover after a failure** — The write succeeded. The offset did not. (Real process recovery)
-22. **What makes a snapshot consistent?** — A moving system needs a coordinated cut.
-23. **Exactly once—at which boundary?** — Replay is expected. Duplicate effects are a design choice.
+27. **Replay without double counting** — One order can have two deliveries. (Bytewax + identity policy)
+28. **Forget state deliberately** — A smaller state store changes the answers you can defend. (Real Bytewax)
+29. **When is it safe to forget?** — State, timers, expiry and the meaning of a result.
+30. **Recover after a failure** — The write succeeded. The offset did not. (Real process recovery)
+31. **What makes a snapshot consistent?** — A moving system needs a coordinated cut.
+32. **Exactly once—at which boundary?** — Replay is expected. Duplicate effects are a design choice.
+33. **Retry with a budget** — Transient failure is a scheduling decision, not an infinite loop. (Bytewax + service-failure fixture)
+34. **Connect transactions to streams** — Outbox, CDC and inbox patterns close different gaps.
 
 ## Performance and capacity
 
 Count work, measure a stated boundary and budget for overload and recovery.
 
-24. **Measure operation effort** — Count the work before timing it. (Instrumented reference algorithms)
-25. **Measure latency and batching** — A higher throughput can hide a longer wait. (Deterministic queueing model)
-26. **When the consumer falls behind** — A queue buys time. It cannot create capacity. (Discrete teaching model)
-27. **Where does the waiting go?** — Slow sinks, blocked channels and checkpoint cost.
-28. **Budget for recovery** — Normal capacity is not recovery capacity. (Fluid capacity model)
+35. **Measure operation effort** — Count the work before timing it. (Instrumented reference algorithms)
+36. **Measure latency and batching** — A higher throughput can hide a longer wait. (Deterministic queueing model)
+37. **When the consumer falls behind** — A queue buys time. It cannot create capacity. (Discrete teaching model)
+38. **Where does the waiting go?** — Slow sinks, blocked channels and checkpoint cost.
+39. **Budget for recovery** — Normal capacity is not recovery capacity. (Fluid capacity model)
 
-## Design and operations
+## Production delivery and governance
 
-Diagnose an incident, defend a policy and identify the next validation layer.
+Rebuild, release, observe and govern a stream with operational evidence.
 
-29. **Why did more workers not help?** — State migration and the limit of a single hot key.
-30. **What is the job waiting for?** — A diagnosis from source to visible result.
-31. **Resolve the streaming incident** — One pipeline. Several plausible explanations. (Bytewax + correction policy)
+40. **Run a bounded backfill** — Replay a declared range into a versioned destination. (Kafka simulator + Bytewax)
+41. **Why did more workers not help?** — State migration and the limit of a single hot key.
+42. **What is the job waiting for?** — A diagnosis from source to visible result.
+43. **Test and deploy a changing stream** — A passing example is the beginning of a release contract.
+44. **Operate data with ownership and care** — Security, privacy and retention are part of the stream contract.
 
-## What executes
+## Design review and capstone
 
-Real Bytewax graphs implement filtering, mapping, keyed state, identity policy, tumbling/sliding windows, sessions, event-time late side outputs and the capstone state machine. Frozen clocks and bounded-source EOF make the time fixtures repeatable; these are not latency measurements. The capstone’s watermark control records and correction/upsert decisions are authored application policy.
+Defend a complete pattern composition and diagnose its failure boundaries.
 
-Kafka partition reads use actual producers and Bytewax KafkaSource. Independent group positions use real OffsetCommit/OffsetFetch requests and explicit assignments. The new live experiment uses a separate consumer process and a produce-after-result handshake. Server storage and coordination are librdkafka’s in-memory Kafka simulator, without claims about disk durability, replication, retention or rebalance coverage.
+45. **Defend the complete design** — Compose patterns, budgets and evidence into a production decision.
+46. **Resolve the streaming incident** — One pipeline. Several plausible explanations. (Bytewax + correction policy)
 
-The recovery drill observes a completed SQLite checkpoint, SIGKILLs a real engine process and resumes position 3/state 25. checkpoint=False deliberately restarts without saved state and repeats three inputs. Files survive this process kill inside the same guest; they disappear with the VM. The ordinary output file does not establish transactional or exactly-once effects.
+## Execution and guarantee boundaries
 
-Retention/compaction, correction policy, clock assignment, interval/temporal join references, operation counters, queueing and fluid capacity calculations remain explicit reference mechanisms. They run in native Python in Linux but are not presented as Bytewax or Kafka built-ins.
+Real Bytewax graphs implement the transformation/state/window/session/join/pattern investigations. Real Kafka producer/consumer traffic and Bytewax KafkaSource connect to an in-memory librdkafka simulator. Process recovery uses an observed SQLite checkpoint and an actual child-process SIGKILL/restart inside one guest. None establishes broker disk durability, replication, distributed failover or external-sink transactions.
 
-## Learning and assessment
+Authored mechanisms are named explicitly: retry service-failure schedules and planned jitter, expiry control records, ordered sequence fixtures, correction/watermark controls, temporal/interval references, retention/compaction and capacity calculations. They are useful learning contracts, not disguised framework features. Reusable operator patterns are demonstrated with actual Bytewax APIs wherever the claim concerns engine behavior.
 
-Every investigation includes inspectable inputs, an optional prediction, executed evidence, a change-one-thing task, an independent question, progressive hints, worked reasoning, implementation limits and primary references. Five operation accounts distinguish work, retained state, movement, progress and recovery. The capstone asks for baseline/broken/repaired run records and an incident explanation rather than awarding a score for execution.
+## Production practice
 
-A native Bytewax/direct-loop harness verifies results before reporting measurements. Browser emulation and authored queue/model clocks are not production capacity evidence. Advanced readings remain usable without JavaScript or a runtime download. The ZeroMQ companion remains a proposal.
+The design path covers commands/events, queue/pub-sub/log choices, output amplification, stream/table updates and tombstones, sequence versus absence, state cleanup, retry budgets and quarantine ownership, snapshot/backfill/cutover, CDC/outbox/inbox, schema semantics and state migration, security/PII/retention/lineage, business SLOs, failure injection, release rehearsal and runbooks. Every reading includes a worked case, framework distinctions, progressive hints, independent reasoning and primary sources. Its diagrams/tables are authored design cases, not recorded deployments.
 
-## Validation
+## Assessment and evidence
 
-Native tests execute exact published snippets and assert independent invariants. Chromium executes the same sources inside a real self-hosted Linux/Wasm VM and compares their results. Checks cover errors/retry, Stop/restart, legacy draft preservation, source/result downloads, reading marks, themes, phone-width layouts, static reading and project-subpath assets. They do not establish physical mobile resource suitability, broker replication, distributed recovery or external-sink transactions.
+Every investigation has inspectable input, a prediction, execution-generated worked output, a controlled change, independent transfer, hints and five operation accounts: work, state, movement, progress and recovery. The final playbook and incident capstone require a topology, identity/clock/state contracts, failure/resource budgets and a validation plan. Run success does not grade that explanation.
+
+Native assertions verify exact published sources and meaningful variants. Browser checks execute those sources inside actual Linux/Wasm, compare answers and verify source/result downloads, Stop/retry, draft migration, reading marks, themes, mobile layouts and subpath assets. Static reading requests no VM. The native performance harness verifies answers before reporting measurements; emulation and authored model clocks do not establish production capacity.

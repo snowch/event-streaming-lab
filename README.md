@@ -2,13 +2,15 @@
 
 [Read the course](https://snowch.github.io/event-streaming-lab/)
 
-A six-part, 31-chapter course with **22 executable investigations and nine distributed-systems readings**. Follow bicycle-shop orders through contracts, live Kafka input, event-time progress, state, joins, failures, performance and an incident capstone. Make predictions, change policies, inspect evidence and complete independent transfer tasks across several study sessions.
+An eight-part, 46-chapter course with **30 executable investigations and 16 design/distributed-systems readings**. Follow bicycle-shop orders through contracts, live Kafka input, event-time progress, state, joins, failures, performance and an incident capstone. Make predictions, change policies, inspect evidence and complete independent transfer tasks across several study sessions.
 
 Real **Bytewax 0.21.1** runs as a native Python engine inside browser-hosted Linux. Kafka lessons use real confluent-kafka clients, TCP loopback and Bytewax KafkaSource against **librdkafka's in-memory Kafka simulator**. The live chapter starts a separate engine process and produces four records only after earlier results arrive. Recovery sends SIGKILL to an actual engine process and restores checkpointed source/state inside the same guest.
 
 The Linux/Wasm architecture was validated using JSLinux. The course ships an open, self-hosted **container2wasm/Bochs** VM with a pinned Debian Python runtime. The broker is a simulator; retention/compaction, correction policies, temporal/interval join references, queueing and capacity models stay explicitly labelled. No production Kafka/Flink/Spark cluster or distributed guarantees are claimed.
 
-[Course map](https://snowch.github.io/event-streaming-lab/#curriculum) · [Runtime and provenance](runtime/README.md) · [Curriculum and coverage](docs/curriculum.md) · [Learning/interface review](docs/review.md)
+[Course map](https://snowch.github.io/event-streaming-lab/#curriculum) · [Runtime and provenance](runtime/README.md) · [Curriculum](docs/curriculum.md) · [Coverage review](docs/completeness-review.md) · [Learning/interface review](docs/review.md)
+
+The pattern sequence adds routing/quarantine, fan-out, materialized views, state deletion, sequence detection, bounded retries, backfills and a real changing-stream join. Design readings cover stream/table duality, CDC/outbox/inbox, absence detection, production releases, governance and pattern composition.
 
 Each investigation accounts for work, state, movement, progress and recovery. Exact editor examples generate the static worked results and are compared with real browser execution. Reading and worked examples need no VM or JavaScript. Every Run gets a fresh guest; files, simulator records and checkpoints are temporary. Drafts, explicit reading marks and themes retain their existing `esl:` keys. Previous drafts are preserved separately and offered as source downloads after migration.
 
@@ -40,7 +42,7 @@ The Pages workflow checks pushes and pull requests. Successful main-branch check
 
 Opening a lesson downloads no VM. First Run downloads the compressed VM and Python assets and reports actual progress, compiles the emulator and starts Linux. Subsequent runs reuse loaded assets but start a new guest. A desktop browser with several hundred megabytes of available memory is recommended; physical low-memory mobile execution is not established by viewport tests.
 
-Loading has a five-minute timeout; editor execution has a three-minute timeout after Python starts. Stop terminates the Worker and discards its guest. Reading marks never grade run success. There is no cross-device synchronization or complete offline-installation claim. See the [runtime build and reset contract](runtime/README.md).
+Downloads have a five-minute timeout. A guest boot stalled for 60 seconds is retried once before Python starts; program execution is never automatically retried. Exports record initialization retries. Editor execution has a three-minute timeout after Python starts. Stop terminates the Worker and discards its guest. Reading marks never grade run success. There is no cross-device synchronization or complete offline-installation claim. See the [runtime build and reset contract](runtime/README.md).
 
 The [native performance harness](harnesses/native-benchmark.py) checks answers before reporting Bytewax or direct-loop service work. Browser emulation timings and computed model milliseconds do not establish distributed capacity. The [ZeroMQ companion](https://snowch.github.io/event-streaming-lab/advanced/zeromq-companion.html) remains a separate proposal.
 
