@@ -1,3 +1,4 @@
+import {renderDiagram} from '../scripts/diagrams.mjs';
 import {chromium} from 'playwright';
 import {spawn} from 'node:child_process';
 import fs from 'node:fs/promises';
@@ -68,6 +69,12 @@ try{
  await reading.locator('.operator-source').scrollIntoViewIfNeeded();await reading.screenshot({path:'test-results/gpu-style-operator-mobile.png'});
  await reading.locator('.course-switcher>summary').click();assert.equal(await reading.locator('.course-switcher').evaluate(e=>e.open),true,'course navigation works without JS');
  assert.equal(staticRequests.some(url=>/\/(engine|assets\/linux)\//.test(url)),false);
+ for(const lesson of lessons){
+  if(!renderDiagram(lesson.slug))continue;
+  await reading.goto(base+'lessons/'+lesson.slug+'.html');
+  assert.equal(await reading.locator('.concept-diagram').count(),1,lesson.slug+' diagram missing');
+  assert.ok(await reading.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),lesson.slug+' diagram overflows');
+ }
  assert.deepEqual(errors,[]);
  console.log('PASS GPU-style interface: centered chapters, self-hosted type, keyboard/outside/Escape navigation, themes, all 51 static phone layouts, inspectable source and no VM before activation.');
 }finally{await browser?.close();server.kill()}

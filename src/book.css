@@ -239,3 +239,43 @@ footer p,footer span{font-size:12px}
 .completion label{min-height:40px;font-size:15px}
 .completion span{font-size:12px}
 @media(max-width:600px){.lesson section.practice{padding:18px;margin:24px 0}.lesson .practice h2{font-size:21px}.exercise-support{gap:8px;margin-top:16px}.exercise-support>details>summary{min-height:44px;font-size:13px;padding-inline:10px}}
+
+.concept-diagram{margin:26px 0 8px;padding:20px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.concept-diagram>figcaption{margin:0 0 18px;font-size:17px;font-weight:600;line-height:1.4}
+.diagram-flow{display:grid;grid-template-columns:repeat(var(--columns),minmax(0,1fr));gap:22px;list-style:none;margin:0;padding:0}
+.diagram-flow>li{position:relative;min-width:0;padding:13px 12px;border:1px solid var(--line);border-radius:7px;background:var(--tint);overflow-wrap:anywhere}
+.diagram-flow>li:not(:last-child)::after{content:'→';position:absolute;top:40%;right:-20px;color:var(--green);font-size:20px}
+.diagram-flow small,.diagram-frames small{display:block;font-size:12px;color:var(--muted);line-height:1.45;margin-bottom:6px}
+.diagram-flow strong{display:block;font-size:16px;font-weight:600;line-height:1.35;margin-bottom:8px}
+.diagram-flow span{display:block;font-size:14px;line-height:1.5;color:var(--muted)}
+.lesson .diagram-caption{font-size:13px;line-height:1.6;color:var(--muted);max-width:none;margin:16px 0 0}
+.diagram-caption>span{font-weight:600}
+.diagram-sequence{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.diagram-sequence>li{display:grid;grid-template-columns:minmax(0,1fr) minmax(64px,110px) minmax(0,1fr);gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.diagram-sequence>li:last-child{border-bottom:0}
+.diagram-sequence>li>span:not(.diagram-message){font-size:15px;line-height:1.5;overflow-wrap:anywhere;padding:10px 12px;background:var(--tint);border-radius:6px}
+.diagram-message{text-align:center;color:var(--green);display:grid;justify-items:center;gap:4px}
+.diagram-message small{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.diagram-message svg{max-width:100%;stroke:currentColor;stroke-width:2;fill:none}
+.diagram-message.is-return svg{transform:rotate(180deg)}
+.diagram-message.is-lost{color:var(--muted)}
+.diagram-message.is-lost svg{stroke-dasharray:4 4}
+.diagram-frames{padding:16px;border:2px solid var(--green);border-radius:8px;background:var(--soft)}
+.message-label{display:block;font-size:13px;font-weight:600;color:var(--green);margin-bottom:12px}
+.diagram-frames ol{list-style:none;display:flex;flex-wrap:wrap;gap:12px;margin:0;padding:0}
+.diagram-frames li{min-width:70px;flex:1;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.diagram-frames code{font-size:16px;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:700px){.concept-diagram{padding:16px}.diagram-flow{grid-template-columns:minmax(0,1fr);gap:20px}.diagram-flow>li:not(:last-child)::after{content:'↓';top:auto;bottom:-21px;left:calc(50% - 7px);right:auto}.diagram-flow>li{padding:12px}.diagram-flow strong{margin-bottom:5px}.diagram-sequence>li{gap:6px;grid-template-columns:minmax(0,1fr) 68px minmax(0,1fr)}.diagram-sequence>li>span:not(.diagram-message){font-size:14px;padding:9px 8px}.diagram-message small{font-size:11px}}
+
+.diagram-root,.diagram-branches>li{padding:13px;border:1px solid var(--line);border-radius:7px;background:var(--tint);min-width:0;overflow-wrap:anywhere}
+.diagram-root{position:relative;width:min(100%,360px);margin:0 auto}
+.diagram-root::after{content:'';position:absolute;left:50%;bottom:-26px;height:26px;border-left:2px solid var(--green)}
+.diagram-branches{position:relative;list-style:none;display:grid;grid-template-columns:repeat(var(--columns),minmax(0,1fr));gap:20px;padding:20px 0 0;margin:26px 0 0}
+.diagram-branches::before{content:'';position:absolute;top:0;left:calc(50% / var(--columns));right:calc(50% / var(--columns));border-top:2px solid var(--green)}
+.diagram-branches>li{position:relative}
+.diagram-branches>li::before{content:'';position:absolute;left:50%;top:-21px;height:20px;border-left:2px solid var(--green)}
+.diagram-tree small{display:block;font-size:12px;line-height:1.4;color:var(--muted);margin-bottom:6px}
+.diagram-tree strong{display:block;font-size:16px;line-height:1.4;font-weight:600;margin-bottom:6px}
+.diagram-tree span{display:block;font-size:14px;line-height:1.5;color:var(--muted)}
+.diagram-message.is-lost svg{transform:rotate(180deg)}
+@media(max-width:600px){.diagram-root{margin:0;width:100%}.diagram-root::after{left:10px}.diagram-branches{grid-template-columns:1fr;margin-top:26px;padding:0 0 0 28px;gap:14px;border-left:2px solid var(--green);margin-left:10px}.diagram-branches::before{display:none}.diagram-branches>li::before{left:-30px;top:24px;width:28px;height:0;border-left:0;border-top:2px solid var(--green)}}

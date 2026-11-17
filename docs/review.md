@@ -125,3 +125,10 @@ The publication workflow runs the complete Linux browser matrix.
 
 These checks address instructions, execution and interaction. No learner study
 measured understanding or transfer.
+
+
+## Explanatory diagrams
+
+Added pattern-specific semantic HTML/SVG diagrams before lab execution. Request/reply timelines, multipart frame groups, actual pattern-state relationships, branching policies and recovery paths use distinct layouts. Parallel partitions/readers/keyed histories and alternative socket settings use branch diagrams, so arrows do not imply a false serial pipeline. Every figure is labelled conceptual and describes the starter/example boundary; actual execution evidence remains in the console and run exports. Reading and diagrams require no JavaScript or runtime download. Phone checks cover each figure’s containing page and figures remain selectable/readable text.
+
+The browser completion check now waits for Run to become available again. A status containing “startup stalled · retrying” is a nonterminal initialization state and must not be mistaken for a failed program. Source execution is still never automatically retried.
