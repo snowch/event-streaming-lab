@@ -83,6 +83,14 @@ try{
   if(!status.includes('Completed')){await page.screenshot({path:artifact('failure-')+lessons[i].slug+'.png',fullPage:true});await fs.writeFile(artifact('failure-')+lessons[i].slug+'.json',JSON.stringify({status,output:await page.locator('#output').textContent()},null,2))}
   assert.match(status,/Completed/);
   assert.deepEqual(JSON.parse(await page.locator('#output').textContent()),samples[i],lessons[i].slug);
+  if(i===shardIndex+shardCount){
+   const cachedDownload=page.waitForEvent('download');await page.locator('#export').click();
+   await (await cachedDownload).saveAs(artifact('cached-runtime.json'));
+   const cached=JSON.parse(await fs.readFile(artifact('cached-runtime.json'),'utf8'));
+   assert.equal(cached.runtime.timing.asset_source,'browser-cache','Chapter navigation reuses prepared assets');
+   assert.ok(cached.runtime.timing.guest_startup_ms>0,'A cached runtime still starts a new guest');
+   assert.ok(cached.runtime.timing.total_ms>=cached.runtime.timing.guest_startup_ms);
+  }
   if(i===0){
    assert.equal(workerRequests,3,'A stalled guest gets exactly one initialization retry');
    const retryExport=page.waitForEvent('download');await page.locator('#export').click();
@@ -205,6 +213,18 @@ try{
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'companion overflow');
  await page.goto(base+'advanced/index.html');assert.equal(await page.locator('.reading-card').count(),chapters.length);
  await page.goto(base+'performance.html');assert.match(await page.locator('main').innerText(),/native-benchmark.py/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ // Cached asset bytes must not retain editor globals or writable guest files.
+ await page.goto(base+'lessons/'+lessons[0].slug+'.html');
+ const isolation='from pathlib import Path\nassert not Path("/tmp/isolation-proof").exists()\nassert "previous_run_value" not in globals()\nprevious_run_value=1\nPath("/tmp/isolation-proof").write_text("temporary")\n'+lessons[0].code;
+ await page.locator('#code').fill(isolation);
+ for(let repeat=0;repeat<2;repeat++){
+  await page.locator('#run').click();
+  await page.waitForFunction(()=>!document.querySelector('#run').disabled,undefined,{timeout:240000});
+  assert.match(await page.locator('#status').textContent(),/Completed in/);
+  assert.deepEqual(JSON.parse(await page.locator('#output').textContent()),samples[0]);
+ }
+ await page.locator('#restore').click();
+ console.log('PASS prepared-asset reuse, startup timing, and fresh guest files/globals across repeated real runs.');
  assert.deepEqual(errors,[]);console.log('PASS: all published Linux/Bytewax sources match native results; error/retry, Stop/restart, drafts, completion, themes, mobile and subpath hosting; all static design readings, saved marks and ZeroMQ proposal.');
  }else console.log(`PASS Linux shard ${shardIndex+1}/${shardCount}: all assigned published sources match native results.`);
 }finally{await browser?.close();server.kill()}

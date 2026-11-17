@@ -1,0 +1,99 @@
+{
+  "date": "2026-11-17",
+  "browser": "Chromium 156.0.8078.79 built on Debian GNU/Linux 13 (trixie)",
+  "method": "Exact first published editor program, three sequential runs per page; both courses active concurrently; local HTTP; new browser contexts for before/after. Compare the two same-page repeats. Illustrative desktop check, not a mobile, network or production benchmark.",
+  "courses": [
+    {
+      "course": "event-streaming-lab",
+      "before": [
+        {
+          "total_ms": 27226,
+          "preparation_ms": 4052,
+          "guest_startup_ms": 10528,
+          "result_type": "result"
+        },
+        {
+          "total_ms": 23599,
+          "preparation_ms": 0,
+          "guest_startup_ms": 10709,
+          "result_type": "result"
+        },
+        {
+          "total_ms": 23493,
+          "preparation_ms": 1,
+          "guest_startup_ms": 10402,
+          "result_type": "result"
+        }
+      ],
+      "after": [
+        {
+          "total_ms": 23662,
+          "preparation_ms": 3205,
+          "guest_startup_ms": 5381,
+          "result_type": "result"
+        },
+        {
+          "total_ms": 20195,
+          "preparation_ms": 1,
+          "guest_startup_ms": 5684,
+          "result_type": "result"
+        },
+        {
+          "total_ms": 20082,
+          "preparation_ms": 0,
+          "guest_startup_ms": 5468,
+          "result_type": "result"
+        }
+      ],
+      "repeat_median_before_ms": 23546.0,
+      "repeat_median_after_ms": 20138.5,
+      "percent_lower": 14.5
+    },
+    {
+      "course": "messaging-patterns-lab",
+      "before": [
+        {
+          "total_ms": 23243,
+          "preparation_ms": 3705,
+          "guest_startup_ms": 10715,
+          "result_type": "result"
+        },
+        {
+          "total_ms": 18997,
+          "preparation_ms": 0,
+          "guest_startup_ms": 10517,
+          "result_type": "result"
+        },
+        {
+          "total_ms": 19140,
+          "preparation_ms": 0,
+          "guest_startup_ms": 10354,
+          "result_type": "result"
+        }
+      ],
+      "after": [
+        {
+          "total_ms": 19749,
+          "preparation_ms": 2869,
+          "guest_startup_ms": 5572,
+          "result_type": "result"
+        },
+        {
+          "total_ms": 16491,
+          "preparation_ms": 0,
+          "guest_startup_ms": 5412,
+          "result_type": "result"
+        },
+        {
+          "total_ms": 15707,
+          "preparation_ms": 0,
+          "guest_startup_ms": 5345,
+          "result_type": "result"
+        }
+      ],
+      "repeat_median_before_ms": 19068.5,
+      "repeat_median_after_ms": 16099.0,
+      "percent_lower": 15.6
+    }
+  ]
+}
