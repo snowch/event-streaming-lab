@@ -32,7 +32,20 @@ await fs.copyFile('node_modules/fflate/LICENSE','dist/engine/FFLATE-LICENSE');
 for(const name of ['LICENSE-MIT','LICENSE-APACHE'])await fs.copyFile('node_modules/@bjorn3/browser_wasi_shim/'+name,'dist/engine/wasi/'+name);
 await fs.writeFile('dist/.nojekyll','');
 await fs.writeFile('dist/favicon.svg','<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#122824"/><path d="M8 14h12l5 12h8M8 26h7l5-12h13" fill="none" stroke="#a3ddc2" stroke-width="3"/></svg>');
-const uiRevision=createHash('sha256').update(await fs.readFile('src/book.css')).update(await fs.readFile('src/app.js')).digest('hex').slice(0,12);
+const pageSources=['src/app.js', 'src/book.css', 'src/lessons.mjs', 'src/linux-worker.js', 'src/warm-session.mjs', 'src/wasi-poll.mjs', 'src/runtime-cache.mjs', 'python/course.py', 'python/kafka_lab.py', 'python/live_kafka.py', 'python/patterns.py', 'python/recovery_drill.py', 'python/runner.py', 'python/session_runner.py'];
+const revisionHash=createHash('sha256');
+for(const file of pageSources)revisionHash.update(await fs.readFile(file));
+const revision=revisionHash.digest('hex').slice(0,12);
+const uiRevision=revision;
+// Keep the page, worker bridge and helpers on the same published build.
+for(const file of ['app.js','worker.js','warm-session.mjs']){
+ let source=await fs.readFile('dist/'+file,'utf8');
+ for(const dependency of ['lessons.mjs','wasi-poll.mjs','warm-session.mjs','runtime-cache.mjs']){
+  source=source.replaceAll("'./"+dependency+"'", "'./"+dependency+'?v='+revision+"'");
+ }
+ await fs.writeFile('dist/'+file,source);
+}
+
 const header=p=>`<a class="skip" href="#main">Skip to content</a><header class="header"><a class="brand" href="${p}index.html"><img src="${p}favicon.svg" alt="" width="40" height="40"><span class="brand-copy"><strong>Event Streaming Lab</strong><span>Python · Bytewax</span></span></a><nav aria-label="Site"><a href="${p}index.html#curriculum">Course</a><a href="${p}about.html">Field notes</a><a class="github" href="https://github.com/snowch/event-streaming-lab">GitHub ↗</a><button id="theme" aria-label="Switch colour theme">Theme</button></nav></header>`;
 const footer=p=>`<footer><a class="brand" href="${p}index.html">Event Streaming Lab</a><p>Small streams. Real code. Better questions.</p><span>© 2026 Christopher Snow · Prose: <a href="https://github.com/snowch/event-streaming-lab/blob/main/LICENSE" rel="license">CC BY-NC 4.0</a> · Code: <a href="https://github.com/snowch/event-streaming-lab/blob/main/LICENSE-CODE" rel="license">Apache-2.0</a> · <a href="${p}about.html">Runtime & sources</a></span></footer>`;
 const shell=(title,body,p='')=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Learn event streaming through real Python experiments, visual traces and guided investigations. Runs locally in your browser."><title>${title} · Event Streaming Lab</title><link rel="icon" href="${p}favicon.svg"><link rel="stylesheet" href="${p}style.css"><link rel="stylesheet" href="${p}book.css?v=${uiRevision}"><script>try{document.documentElement.dataset.theme=localStorage.getItem('esl:theme')||'light'}catch{}</script><script type="module" src="${p}app.js?v=${uiRevision}"></script></head><body>${header(p)}${body}${footer(p)}</body></html>`;

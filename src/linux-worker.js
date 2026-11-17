@@ -3,6 +3,7 @@ import {gunzipSync} from './engine/fflate.mjs';
 import {clockPoll} from './wasi-poll.mjs';
 import {WarmSession,supportsWarmSession} from './warm-session.mjs';
 import {readPreparedRuntime,writePreparedRuntime} from './runtime-cache.mjs';
+const workerUrl=new URL(import.meta.url);
 let ready,busy=false,session,fastUnavailable=false,fastReason;
 const decoder=new TextDecoder(),encoder=new TextEncoder();
 const phase=(message,extra={})=>postMessage({type:'loading',message,...extra});
@@ -52,14 +53,14 @@ async function setup(){
  const prepared=await prepareAssets(await response.json());
  const names=['course.py','kafka_lab.py','recovery_drill.py','live_kafka.py','patterns.py','runner.py','session_runner.py'];
  const helpers=await Promise.all(names.map(async name=>{
-  const r=await fetch(new URL('./python/'+name,import.meta.url));if(!r.ok)throw Error('Could not load '+name);
+  const r=await fetch(new URL('./python/'+name+workerUrl.search,workerUrl));if(!r.ok)throw Error('Could not load '+name);
   return [name,new Uint8Array(await r.arrayBuffer())];
  }));
  return {module:prepared.module,entries:prepared.entries||indexArchive(prepared.archive),helpers,assetSource:prepared.assetSource};
 }
 
-// Index once and share read-only bytes. Every Run gets fresh inodes, file
-// positions, a new Linux VM and its own writable overlay.
+// Index once and share read-only bytes. Each guest gets fresh inodes and file
+// positions; warm executions add their own private writable root and namespaces.
 function indexArchive(archive){
  const entries=[];let pax={};
  for(let p=0;p+512<=archive.length;){
