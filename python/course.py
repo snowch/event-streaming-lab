@@ -116,11 +116,15 @@ def retained_log(start=2, compact=False):
             'note':'Compaction is an idealized latest-per-key pass. Tombstones remain visible.'}
 
 
-def clock_windows():
-    observed=[0,12,13,14,25]
-    rows=[{'id':e['id'],'event_time':e['time'],'processing_time':p,
-           'event_window':e['time']//10,'processing_window':p//10}
-          for e,p in zip(ORDERS,observed)]
+def clock_windows(processing_times=None):
+    if processing_times is None:
+        processing_times={'a':0,'b':12,'c':13,'d':14,'e':25}
+    rows=[]
+    for order in ORDERS:
+        event_time=order['time']
+        processing_time=processing_times[order['id']]
+        rows.append({'id':order['id'],'event_time':event_time,'processing_time':processing_time,
+                     'event_window':event_time//10,'processing_window':processing_time//10})
     return {'trace':rows,'note':'Authored arrival clock; neither clock measures execution speed.'}
 
 
@@ -161,11 +165,12 @@ def corrections(lateness=5):
     return {'updates':updates,'late':late,'trace':trace}
 
 
-def interval_join(horizon=10):
+def interval_join(horizon=10, payments=None):
     if horizon<0: raise ValueError('horizon must be nonnegative')
     orders=[{'id':'x','time':0},{'id':'y','time':4}]
-    payments=[{'id':'x','time':7,'receipt':'p1'},{'id':'x','time':9,'receipt':'p2'},
-              {'id':'y','time':20,'receipt':'p3'}]
+    if payments is None:
+        payments=[{'id':'x','time':7,'receipt':'p1'},{'id':'x','time':9,'receipt':'p2'},
+                  {'id':'y','time':20,'receipt':'p3'}]
     comparisons=0;out=[]
     for order in orders:
         for payment in payments:

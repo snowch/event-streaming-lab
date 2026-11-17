@@ -14,82 +14,206 @@ if(courseMenu){
 }
 const main=$('[data-lesson]');
 if(main){
- const lesson=lessons[Number(main.dataset.lesson)], editor=$('#code');let worker,timer,runRecord,busy=false,runGeneration=0,attemptSerial=0;
- const cached=read('draft:'+lesson.slug);
- if(cached!==null&&read('draft-runtime:'+lesson.slug)!=='bytewax-v1'){
-  save('legacy-draft:'+lesson.slug,cached);save('draft:'+lesson.slug,lesson.code);
- }else if(cached!==null)editor.value=cached;
- save('draft-runtime:'+lesson.slug,'bytewax-v1');
- const previous=read('legacy-draft:'+lesson.slug);
- if(previous!==null){const button=document.createElement('button');button.textContent='Download previous draft';button.onclick=()=>download('# Saved before the Bytewax migration; source only.\n'+previous,lesson.slug+'-previous.py','text/x-python');$('#draft-note').append(' Your previous draft has been preserved. ',button)}
+ const lesson=lessons[Number(main.dataset.lesson)];
+ const editor=$('#code'), runButton=$('#run'), stopButton=$('#stop');
+ const publishedCode=editor.defaultValue;
+ const progressBar=$('#runtime-progress');
+ const draftKey='draft:'+lesson.slug, runtimeKey='draft-runtime:'+lesson.slug;
+ const legacyKey='legacy-draft:'+lesson.slug, backupKey='restore-backup:'+lesson.slug;
+ let worker,timer,lastSuccessfulRun,busy=false,runGeneration=0,attemptSerial=0;
+
+ function draftStatus(message=''){
+  $('#draft-status').textContent=message;
+  $('#draft-status').hidden=!message;
+ }
+ const cached=read(draftKey);
+ const needsMigration=cached!==null&&cached!==publishedCode&&read(runtimeKey)!=='bytewax-v1';
+ const readyForCurrentRuntime=!needsMigration||(save(legacyKey,cached)&&save(draftKey,publishedCode));
+ if(readyForCurrentRuntime)save(runtimeKey,'bytewax-v1');
+ else draftStatus('Your previous draft is still open. Storage could not save a separate copy. Download it to keep it.');
+ if(cached!==null&&(!needsMigration||!readyForCurrentRuntime))editor.value=cached;
+ const previous=read(legacyKey);
+ if(previous!==null){
+  const button=document.createElement('button');
+  button.textContent='Download previous draft';
+  button.onclick=()=>download('# Saved before the Bytewax migration; source only.\n'+previous,lesson.slug+'-previous.py','text/x-python');
+  $('#draft-note').append(' Your previous runtime draft is available. ',button);
+ }
+ let recoverableDraft=read(backupKey);
+ function updateRecovery(){
+  $('#recover-draft').hidden=recoverableDraft===null||recoverableDraft===editor.value;
+ }
+ function persistDraft(){
+  const saved=save(draftKey,editor.value)&&save(runtimeKey,'bytewax-v1');
+  draftStatus(saved?'':'Could not save this change. Download the code you want to keep.');
+ }
+ function replaceDraft(source){
+  const outgoing=editor.value;
+  let savedBackup=true;
+  if(outgoing!==publishedCode&&outgoing!==source){
+   recoverableDraft=outgoing;
+   savedBackup=save(backupKey,outgoing);
+  }
+  editor.value=source;
+  if(savedBackup)persistDraft();
+  else draftStatus('The replaced draft is available in this tab. Use Recover draft and download it to keep a copy.');
+  $('#saved-draft-notice').hidden=true;
+  updateRecovery();
+  describeResult();
+  editor.focus();
+  editor.setSelectionRange(0,0);
+  editor.scrollTop=0;
+  editor.scrollLeft=0;
+ }
+ $('#saved-draft-notice').hidden=editor.value===publishedCode;
+ updateRecovery();
  $('#done').checked=read('done:'+lesson.slug)==='true';
  $('#done').onchange=()=>{const ok=save('done:'+lesson.slug,String($('#done').checked));$('#save-status').textContent=ok?'Reading mark saved in this browser.':'Could not save. Reading mark lasts for this visit.';progress()};
- function stale(){if(runRecord)$('#execution-note').textContent=editor.value!==runRecord.source?'Code changed · output is from the previous run.':'Output matches the last executed source.'}
- editor.oninput=()=>{if(!save('draft:'+lesson.slug,editor.value))$('#draft-note').textContent='Storage unavailable. Download your code to keep it.';stale()};
- $('#restore').onclick=()=>{editor.value=lesson.code;editor.dispatchEvent(new Event('input'))};
- function state(active,text){busy=active;$('#run').disabled=active;$('#stop').disabled=!active;$('#status').textContent=text}
- function finish(){clearTimeout(timer);$('#runtime-progress')?.setAttribute('hidden','');state(false,'Ready for another run')}
- function stop(message){runGeneration++;attemptSerial++;worker?.terminate();worker=null;finish();$('#status').textContent=message;$('#execution-note').textContent='Execution interrupted. Existing output belongs to the last completed run.'}
- $('#stop').onclick=()=>stop('Stopped · next run starts a fresh runtime');
- function startAttempt(source,generation,retries){
-  const attempt=++attemptSerial;let begun=false;
+ function describeResult(){
+  if(!lastSuccessfulRun)return;
+  $('#execution-note').textContent=busy?'A new run is in progress. This result is from the last successful run.':
+   editor.value!==lastSuccessfulRun.source?'Code changed. This result and its export use the last successful run.':
+   'This result and its export use the last successful run.';
+ }
+ editor.oninput=()=>{persistDraft();updateRecovery();describeResult()};
+ $('#restore').onclick=()=>{
+  replaceDraft(publishedCode);
+  $('#status').textContent=$('#recover-draft').hidden?'Published code is ready.':'Published code is ready. Select Recover draft to get your code back.';
+ };
+ $('#recover-draft').onclick=()=>{
+  if(recoverableDraft===null)return;
+  replaceDraft(recoverableDraft);
+  $('#status').textContent='Draft recovered. Select Run in Linux to run it.';
+ };
+
+ function state(active,message){
+  const focused=document.activeElement;
+  busy=active;
+  runButton.disabled=active;
+  stopButton.hidden=!active;
+  stopButton.disabled=!active;
+  $('#restore').disabled=active;
+  $('#recover-draft').disabled=active;
+  $('#status').textContent=message;
+  if(active&&focused===runButton)stopButton.focus({preventScroll:true});
+  if(!active&&focused===stopButton)runButton.focus({preventScroll:true});
+  describeResult();
+ }
+ function hideProgress(){
+  progressBar.hidden=true;
+  progressBar.removeAttribute('value');
+ }
+ function finish(message){
   clearTimeout(timer);
-  timer=setTimeout(()=>stop('Loading timed out. Check your connection and run again.'),300000);
-  worker ||= new Worker(new URL('./worker.js',import.meta.url),{type:'module'});
+  hideProgress();
+  state(false,message);
+ }
+ function discardWorker(){
+  runGeneration++;
+  attemptSerial++;
+  worker?.terminate();
+  worker=null;
+ }
+ function fail(origin,message,stdout=''){
+  const pythonError=origin==='python';
+  if(!pythonError)discardWorker();
+  finish(pythonError?'Python reported an error. Check the message, then edit and rerun.':
+   'The runtime failed. Check the message, then run again.');
+  const error=message.trim();
+  const summary=pythonError?error.split('\n').at(-1):error.split('\n')[0];
+  const details=[stdout.trimEnd(),error].filter(Boolean).join('\n\n');
+  $('#attempt-error-title').textContent=pythonError?'Execution error':'Runtime error';
+  $('#error-summary').textContent=summary||'The attempt could not finish.';
+  $('#error-trace').textContent=details;
+  $('#error-details').hidden=details===summary;
+  $('#attempt-error').hidden=false;
+ }
+ stopButton.onclick=()=>{
+  discardWorker();
+  finish('Stopped. The next run starts a fresh Linux guest.');
+ };
+ function startAttempt(source,generation,retries){
+  const attempt=++attemptSerial;
+  let begun=false;
+  clearTimeout(timer);
+  timer=setTimeout(()=>fail('runtime','Loading timed out. Check your connection and run again.'),300000);
+  try{worker ||= new Worker(new URL('./worker.js',import.meta.url),{type:'module'})}
+  catch(error){fail('runtime',error.message);return}
   const current=()=>busy&&generation===runGeneration&&attempt===attemptSerial;
-  worker.onerror=e=>{if(!current())return;stop('Runtime failed. Run again to restart.');$('#output').textContent=e.message};
+  worker.onerror=event=>{if(current())fail('runtime',event.message||'The Python worker could not load.')};
   worker.onmessage=({data})=>{
    if(!current())return;
    if(data.type==='loading'){
-    $('#status').textContent=data.message;const bar=$('#runtime-progress');
-    if(bar){bar.hidden=!data.total;if(data.total){bar.max=data.total;bar.value=data.downloaded}}
+    $('#status').textContent=data.message;
+    if(data.total>0){
+     progressBar.max=data.total;
+     progressBar.value=data.downloaded;
+     progressBar.hidden=false;
+    }else hideProgress();
     if(data.stage==='boot'){
-     clearTimeout(timer);timer=setTimeout(()=>{
+     clearTimeout(timer);
+     timer=setTimeout(()=>{
       if(!current()||begun)return;
-      if(retries===0){worker.terminate();worker=null;$('#status').textContent='Guest startup stalled · retrying once before Python starts…';startAttempt(source,generation,1)}
-      else stop('Guest startup stalled twice. Run again to restart the VM.');
+      if(retries===0){
+       worker.terminate();
+       worker=null;
+       $('#status').textContent='Guest startup stalled. Retrying once before Python starts…';
+       startAttempt(source,generation,1);
+      }else fail('runtime','Guest startup stalled twice. Run again to restart the VM.');
      },60000);
     }
     return;
    }
    if(data.type==='running'){
-    begun=true;clearTimeout(timer);$('#runtime-progress')?.setAttribute('hidden','');
-    timer=setTimeout(()=>stop('Stopped after 180 seconds. Shorten the experiment and try again.'),180000);
-    $('#status').textContent='Running your Python…';return;
+    begun=true;
+    clearTimeout(timer);
+    hideProgress();
+    timer=setTimeout(()=>fail('runtime','Execution stopped after 180 seconds. Shorten the experiment and try again.'),180000);
+    $('#status').textContent='Running your Python…';
+    return;
    }
-   finish();
    if(data.type==='error'){
-    $('#status').textContent=data.origin==='runtime'?'Runtime reported an error · retry initialization':'Python reported an error · edit and retry';
-    $('#output').textContent=data.message;$('#visual').replaceChildren();
-    $('#execution-note').textContent='This attempt failed; no successful result was produced.';
-    runRecord=null;$('#export').disabled=true;return;
+    fail(data.origin,data.message,data.stdout);
+    return;
    }
-   runRecord={lesson:lesson.slug,source,result:data.value.result,stdout:data.value.stdout,runtime:{...data.runtime,initialization_retries:retries}};
+   if(data.type!=='result')return;
+   lastSuccessfulRun={lesson:lesson.slug,source,result:data.value.result,stdout:data.value.stdout,runtime:{...data.runtime,initialization_retries:retries}};
    $('#output').textContent=(data.value.stdout?data.value.stdout+'\n':'')+JSON.stringify(data.value.result,null,2);
-   $('#status').textContent='Completed · Linux / Bytewax';$('#export').disabled=false;stale();visualize(data.value.result);
+   visualize(data.value.result);
+   $('#run-result').hidden=false;
+   $('#export').disabled=false;
+   finish('Completed. Inspect your result.');
   };
-  worker.postMessage({source});
+  try{worker.postMessage({source})}
+  catch(error){fail('runtime',error.message)}
  }
- $('#run').onclick=()=>{
-  if(busy)return;state(true,'Preparing Linux + Bytewax…');
+ runButton.onclick=()=>{
+  if(busy)return;
+  $('#attempt-error').hidden=true;
+  $('#error-details').open=false;
+  state(true,'Preparing Linux + Bytewax…');
   startAttempt(editor.value,++runGeneration,0);
  };
- editor.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();$('#run').click()}});
+ editor.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runButton.click()}});
+ state(false,'');
  function download(contents,name,type){const url=URL.createObjectURL(new Blob([contents],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
  $('#download').onclick=async()=>{try{
  const names=['course.py','kafka_lab.py','recovery_drill.py','live_kafka.py','patterns.py'];
  const modules=Object.fromEntries(await Promise.all(names.map(async name=>{const r=await fetch(new URL('./python/'+name,import.meta.url));if(!r.ok)throw Error('Helper download failed');return [name,await r.text()]})));
  const setup='# Install: python -m pip install bytewax==0.21.1 confluent-kafka==2.6.1\nimport tempfile, pathlib, sys, json\n_lab = tempfile.TemporaryDirectory(prefix="streaming-lab-")\n_modules = '+JSON.stringify(modules)+'\nfor _name, _text in _modules.items():\n    pathlib.Path(_lab.name, _name).write_text(_text)\nsys.path.insert(0, _lab.name)\n\n# Your experiment\n';
  download(setup+editor.value+'\nprint(json.dumps(result, indent=2))\n',lesson.slug+'.py','text/x-python');
- }catch(e){$('#status').textContent=e.message}};
- $('#export').onclick=()=>{if(runRecord)download(JSON.stringify(runRecord,null,2),lesson.slug+'-run.json','application/json')};
+ }catch(e){draftStatus(e.message)}};
+ $('#export').onclick=()=>{if(lastSuccessfulRun)download(JSON.stringify(lastSuccessfulRun,null,2),lesson.slug+'-run.json','application/json')};
  function visualize(result){
  const panel=$('#visual');panel.replaceChildren();if(!result?.trace?.length)return;
  let position=0;const head=document.createElement('div');head.className='trace-head';const title=document.createElement('h3');title.textContent='Follow the evidence';const controls=document.createElement('div');const prev=document.createElement('button'),next=document.createElement('button'),label=document.createElement('span');prev.textContent='←';prev.setAttribute('aria-label','Previous trace step');next.textContent='→';next.setAttribute('aria-label','Next trace step');controls.append(prev,label,next);head.append(title,controls);panel.append(head);const view=document.createElement('div');view.className='trace-view';panel.append(view);
  const draw=()=>{const row=result.trace[position];label.textContent=`${position+1} / ${result.trace.length}`;prev.disabled=!position;next.disabled=position===result.trace.length-1;view.replaceChildren();const oldLine=panel.querySelector('.watermark-line');oldLine?.remove();if(Number.isFinite(row.watermark)){const line=document.createElement('div');line.className='watermark-line';const marker=document.createElement('span');marker.className='watermark-marker';const upper=Math.max(30,row.maximum||0),lower=Math.min(-10,row.watermark);marker.style.left=((row.watermark-lower)/(upper-lower)*100)+'%';const symbol=document.createElement('b');symbol.textContent='|';marker.append(symbol,document.createTextNode('watermark '+row.watermark+'s'));line.append(marker);line.setAttribute('aria-label','Watermark at '+row.watermark+' seconds on a '+lower+' to '+upper+' second scale');panel.insertBefore(line,view)}for(const [key,value]of Object.entries(row)){const block=document.createElement('div'),caption=document.createElement('span'),text=document.createElement('strong');caption.textContent=key;text.textContent=typeof value==='object'?JSON.stringify(value):String(value);block.append(caption,text);view.append(block)}};
  prev.onclick=()=>{position--;draw()};next.onclick=()=>{position++;draw()};draw();
  }
- addEventListener('pagehide',()=>{runGeneration++;attemptSerial++;clearTimeout(timer);worker?.terminate();worker=null;busy=false});
+ addEventListener('pagehide',()=>{
+  discardWorker();
+  if(busy)finish('The run was interrupted when you left this page. Run again to start a fresh guest.');
+ });
 }
 
 const reading=document.querySelector('[data-reading]');
