@@ -32,6 +32,11 @@ try{
  const context=await browser.newContext({viewport:{width:1440,height:1000}});const page=await context.newPage();
  page.setDefaultTimeout(240000);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const requestedSources=[];
+ context.on('request',request=>{
+  const url=new URL(request.url());
+  if(/\/(app\.js|worker\.js|lessons\.mjs|catalog\.mjs|patterns\.mjs|warm-session\.mjs|wasi-poll\.mjs|runtime-cache\.mjs|python\/[^/]+\.py)$/.test(url.pathname))requestedSources.push(url);
+ });
  await context.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
  const base=`http://127.0.0.1:${port}/event-streaming-lab/`;
  await page.goto(base);await page.screenshot({path:artifact('overview-desktop.png'),fullPage:true});
@@ -44,7 +49,7 @@ try{
   let workerRequests=0;
   if(i===0){
    // Stall initialization only. The successful retry still runs real Linux/Bytewax.
-   await page.route('**/worker.js',route=>{
+   await page.route(/\/worker\.js\?v=/,route=>{
     workerRequests++;
     return workerRequests<=3?route.fulfill({contentType:'text/javascript',body:`onmessage=()=>{
       postMessage({type:'loading',message:'Test runtime download…',downloaded:25,total:100});
@@ -74,7 +79,7 @@ try{
    assert.equal(await page.locator('#export').isDisabled(),true);
    assert.equal(await page.locator('#run-result').isVisible(),false);
    assert.equal(await page.locator('#stop').isVisible(),false);
-   await page.unroute('**/worker.js');
+   await page.unroute(/\/worker\.js\?v=/);
   }
   await page.locator('#run').click();
   try{await page.waitForFunction(()=>!document.querySelector('#run').disabled,undefined,{timeout:240000})}
@@ -98,7 +103,7 @@ try{
    const retried=JSON.parse(await fs.readFile(artifact('initialization-retry.json'),'utf8'));
    assert.ok([0,1].includes(retried.runtime.initialization_retries));
    assert.deepEqual(retried.result,samples[0]);
-   await page.unroute('**/worker.js');
+   await page.unroute(/\/worker\.js\?v=/);
    assert.equal(await page.locator('#attempt-error').isVisible(),false);
    console.log('PASS startup watchdog: Stop cancels; boot retries are bounded; fresh actual Linux execution matches native.');
   }
@@ -213,18 +218,84 @@ try{
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'companion overflow');
  await page.goto(base+'advanced/index.html');assert.equal(await page.locator('.reading-card').count(),chapters.length);
  await page.goto(base+'performance.html');assert.match(await page.locator('main').innerText(),/native-benchmark.py/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
- // Cached asset bytes must not retain editor globals or writable guest files.
+ // Fast mode reuses Linux, but resets Python, files, environment and native sockets.
  await page.goto(base+'lessons/'+lessons[0].slug+'.html');
- const isolation='from pathlib import Path\nassert not Path("/tmp/isolation-proof").exists()\nassert "previous_run_value" not in globals()\nprevious_run_value=1\nPath("/tmp/isolation-proof").write_text("temporary")\n'+lessons[0].code;
- await page.locator('#code').fill(isolation);
- for(let repeat=0;repeat<2;repeat++){
+ assert.equal(await page.locator('#run-mode').inputValue(),'warm');
+ const isolation=`import os, socket, time
+from pathlib import Path
+import course as lesson_module
+assert os.getpid()==1
+assert 'previous_run_value' not in globals()
+assert 'LESSON_ENV_PROOF' not in os.environ
+assert not hasattr(lesson_module,'learner_proof')
+for name in ['/isolation-proof','/tmp/isolation-proof','/var/tmp/isolation-proof']:
+    assert not Path(name).exists()
+    Path(name).write_text('temporary')
+previous_run_value=1
+os.environ['LESSON_ENV_PROOF']='temporary'
+lesson_module.learner_proof=True
+background=os.fork()
+if background==0:
+    time.sleep(600)
+    os._exit(0)
+probe_socket=socket.socket()
+probe_socket.bind(('127.0.0.1',50555))
+try:
+    Path('/etc/isolation-proof').write_text('must fail')
+    raise AssertionError('Shared runtime must be read-only')
+except OSError as error:
+    assert error.errno==30
+`+lessons[0].code;
+ async function completedRun(){
   await page.locator('#run').click();
   await page.waitForFunction(()=>!document.querySelector('#run').disabled,undefined,{timeout:240000});
   assert.match(await page.locator('#status').textContent(),/Completed in/);
   assert.deepEqual(JSON.parse(await page.locator('#output').textContent()),samples[0]);
  }
+ async function runtimeExport(name){
+  const pending=page.waitForEvent('download');await page.locator('#export').click();
+  await(await pending).saveAs(artifact(name));
+  return JSON.parse(await fs.readFile(artifact(name),'utf8'));
+ }
+ await page.locator('#code').fill(isolation);
+ for(let repeat=0;repeat<2;repeat++){
+  await completedRun();
+  const saved=await runtimeExport('warm-isolation-'+repeat+'.json');
+  assert.equal(saved.runtime.mode,'warm');assert.equal(saved.runtime.session_run,repeat+1);
+  assert.equal(saved.runtime.process_pid,1);assert.equal(saved.runtime.procfs,false);
+  assert.ok(saved.runtime.elapsed_ms>0);
+  if(repeat===1)assert.equal(saved.runtime.timing.guest_startup_ms,0,'Reruns must not boot another guest');
+ }
+ const beforeReset=await page.locator('#output').textContent();
+ await page.locator('#reset-runtime').click();
+ assert.match(await page.locator('#status').textContent(),/Linux reset/);
+ assert.equal(await page.locator('#output').textContent(),beforeReset);
+ assert.equal(await page.locator('#code').inputValue(),isolation);
+ await completedRun();
+ assert.equal((await runtimeExport('after-linux-reset.json')).runtime.session_run,1);
  await page.locator('#restore').click();
- console.log('PASS prepared-asset reuse, startup timing, and fresh guest files/globals across repeated real runs.');
+ await page.locator('#code').fill(lessons[0].code+'\nimport os\nassert os.path.isdir("/proc/self")\n');
+ await page.locator('#run-mode').selectOption('fresh');
+ await completedRun();
+ const fresh=await runtimeExport('explicit-fresh-linux.json');
+ assert.equal(fresh.runtime.mode,'fresh');assert.equal(fresh.runtime.procfs,true);
+ await page.locator('#run-mode').selectOption('warm');
+ // Disable JSPI in the worker only, then execute the real fresh-guest fallback.
+ await page.route(/\/worker\.js\?v=/,async route=>{
+  const response=await route.fetch();
+  await route.fulfill({response,body:'WebAssembly.Suspending=undefined;\n'+await response.text()});
+ });
+ await completedRun();
+ const fallback=await runtimeExport('unsupported-fast-fallback.json');
+ assert.equal(fallback.runtime.mode,'fresh');assert.match(fallback.runtime.warm_fallback,/unavailable/);
+ assert.equal(await page.locator('#run-mode').inputValue(),'fresh');
+ await page.unroute(/\/worker\.js\?v=/);await page.locator('#restore').click();
+ console.log('PASS warm session isolation, no reboot on rerun, reset, explicit fresh Linux and real JSPI fallback.');
  assert.deepEqual(errors,[]);console.log('PASS: all published Linux/Bytewax sources match native results; error/retry, Stop/restart, drafts, completion, themes, mobile and subpath hosting; all static design readings, saved marks and ZeroMQ proposal.');
  }else console.log(`PASS Linux shard ${shardIndex+1}/${shardCount}: all assigned published sources match native results.`);
+ const revision=requestedSources.find(url=>url.pathname.endsWith('/app.js'))?.searchParams.get('v');
+ assert.ok(revision,'The page identifies its build');
+ assert.ok(requestedSources.some(url=>url.pathname.endsWith('/warm-session.mjs')),'The worker uses the warm bridge');
+ assert.ok(requestedSources.some(url=>url.pathname.endsWith('/python/session_runner.py')),'The worker loads the session controller');
+ assert.ok(requestedSources.every(url=>url.searchParams.get('v')===revision),'Page, runtime modules and Python helpers use the same build');
 }finally{await browser?.close();server.kill()}

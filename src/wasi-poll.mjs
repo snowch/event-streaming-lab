@@ -1,7 +1,7 @@
 // WASI preview1 poll_oneoff for this VM's idle nonblocking stdin and clocks.
 // Descriptor readiness and clock deadlines follow the WASI event contract.
 const now=id=>id===0?BigInt(Date.now())*1000000n:BigInt(Math.round(performance.now()*1e6));
-export function clockPoll(wasi,input,output,count,nEvents){
+export function clockPoll(wasi,input,output,count,nEvents,inputBytes=0){
  if(!count)return 28; // ERRNO_INVAL
  const memory=new DataView(wasi.inst.exports.memory.buffer),ready=[],clocks=[];
  for(let i=0;i<count;i++){
@@ -13,7 +13,7 @@ export function clockPoll(wasi,input,output,count,nEvents){
    clocks.push({userdata,type,id,deadline:absolute?timeout:now(id)+timeout});
   }else{
    const fd=memory.getUint32(p+16,true);
-   if(type===1&&fd===0)continue; // interactive device is open, with no input
+   if(type===1&&fd===0){if(inputBytes>0)ready.push({userdata,type,bytes:BigInt(inputBytes)});continue}
    else if(type===2&&(fd===1||fd===2))ready.push({userdata,type});
    else ready.push({userdata,type,error:8}); // ERRNO_BADF
   }
@@ -28,7 +28,7 @@ export function clockPoll(wasi,input,output,count,nEvents){
  ready.forEach((event,i)=>{
   const p=output+i*32;new Uint8Array(memory.buffer,p,32).fill(0);
   memory.setBigUint64(p,event.userdata,true);memory.setUint16(p+8,event.error||0,true);
-  memory.setUint8(p+10,event.type);memory.setUint16(p+24,event.hangup?1:0,true);
+  memory.setUint8(p+10,event.type);memory.setBigUint64(p+16,event.bytes||0n,true);memory.setUint16(p+24,event.hangup?1:0,true);
  });
  memory.setUint32(nEvents,ready.length,true);return 0;
 }

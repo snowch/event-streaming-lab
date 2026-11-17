@@ -42,7 +42,7 @@ The Pages workflow checks pushes and pull requests. Successful main-branch check
 
 ## Runtime behavior
 
-Opening a lesson downloads no VM. First Run downloads the compressed VM and Python assets and reports actual progress, compiles the emulator and starts Linux. Subsequent runs reuse loaded assets but start a new guest. A desktop browser with several hundred megabytes of available memory is recommended; physical low-memory mobile execution is not established by viewport tests.
+Opening a lesson downloads no VM. First Run downloads the compressed VM and Python assets and reports actual progress, compiles the emulator and starts Linux. Fast reruns reuse the running guest and trusted helper imports while starting a fresh isolated Python process with private files and sockets. Fresh Linux mode starts a new guest each time. Stop and Reset Linux destroy it. A desktop browser with several hundred megabytes of available memory is recommended; physical low-memory mobile execution is not established by viewport tests.
 
 Downloads have a five-minute timeout. A guest boot stalled for 60 seconds is retried once before Python starts; program execution is never automatically retried. Exports record initialization retries. Editor execution has a three-minute timeout after Python starts. Stop terminates the Worker and discards its guest. Reading marks never grade run success. There is no cross-device synchronization or complete offline-installation claim. See the [runtime build and reset contract](runtime/README.md).
 
@@ -66,3 +66,9 @@ The [native performance harness](harnesses/native-benchmark.py) checks answers b
 ## License
 
 Copyright © 2026 Christopher Snow. Original code: Apache-2.0. Original prose: CC BY-NC 4.0. Runtime software retains its individual licenses; see [third-party notices and source links](runtime/THIRD-PARTY-NOTICES.md). Official documentation is linked from the relevant lessons.
+
+### Faster reruns
+
+On browsers with WebAssembly JavaScript Promise Integration (JSPI), **Fast reruns** keep Linux and trusted Python helpers ready in the current lesson. Every Run gets a new process, private scratch files and new Linux namespaces; Python variables, sockets and writes do not carry over. **Reset Linux** restarts the entire guest. **Fresh Linux** retains the original fresh-guest execution path and is used when JSPI is unavailable. The first Run on a page still starts Linux; only asset bytes, not a running guest, are cached across chapters.
+
+Fast mode has read-only system/runtime directories, a 32 MiB scratch filesystem and no `/proc`; use Fresh Linux for system inspection. The Linux kernel is shared within a fast session. The runtime is for these local learning experiments, not a claim of distributed durability. Run exports identify the mode and session run, guest/process startup and execution phases. `elapsed_ms` measures the complete button-to-result wait, including initialization retries. Source programs are never automatically retried after they start.

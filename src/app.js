@@ -1,4 +1,6 @@
 import {lessons} from './lessons.mjs';
+const appUrl=new URL(import.meta.url);
+const lessonSource=path=>new URL(path+appUrl.search,appUrl);
 const $=s=>document.querySelector(s);
 const read=k=>{try{return localStorage.getItem('esl:'+k)}catch{return null}};
 const save=(k,v)=>{try{localStorage.setItem('esl:'+k,v);return true}catch{return false}};
@@ -16,11 +18,30 @@ const main=$('[data-lesson]');
 if(main){
  const lesson=lessons[Number(main.dataset.lesson)];
  const editor=$('#code'), runButton=$('#run'), stopButton=$('#stop');
+ const modeControl=$('#run-mode'),resetRuntime=$('#reset-runtime');
+ const fastSupported=typeof globalThis.WebAssembly?.Suspending==='function'&&typeof globalThis.WebAssembly?.promising==='function';
+ const savedMode=read('run-mode');
+ modeControl.value=fastSupported&&savedMode!=='fresh'?'warm':'fresh';
+ modeControl.querySelector('[value="warm"]').disabled=!fastSupported;
+ const preload=[...new Set([...lesson.code.matchAll(/^(?:from|import) (course|patterns|kafka_lab|live_kafka|recovery_drill)\b/gm)].map(match=>match[1]))];
+ function describeMode(){
+  $('#run-mode-note').textContent=modeControl.value==='warm'?'Fresh Python, files and sockets on each run. Linux stays ready; Reset Linux restarts it.':fastSupported?'A new Linux guest on every run. Use this for system inspection or a fully fresh environment.':'Fast reruns are unavailable in this browser. Each Run starts fresh Linux.';
+ }
+ describeMode();
+ modeControl.onchange=()=>{
+  if(busy)return;
+  save('run-mode',modeControl.value);discardWorker();describeMode();
+  finish('Run mode changed. Run when ready.');
+ };
+ resetRuntime.onclick=()=>{
+  if(busy)return;
+  discardWorker();finish('Linux reset. The next Run starts Linux again.');
+ };
  const publishedCode=editor.defaultValue;
  const progressBar=$('#runtime-progress');
  const draftKey='draft:'+lesson.slug, runtimeKey='draft-runtime:'+lesson.slug;
  const legacyKey='legacy-draft:'+lesson.slug, backupKey='restore-backup:'+lesson.slug;
- let worker,timer,lastSuccessfulRun,busy=false,runGeneration=0,attemptSerial=0;
+ let worker,timer,lastSuccessfulRun,busy=false,runGeneration=0,attemptSerial=0,runStarted=0;
 
  function draftStatus(message=''){
   $('#draft-status').textContent=message;
@@ -89,6 +110,7 @@ if(main){
  function state(active,message){
   const focused=document.activeElement;
   busy=active;
+  modeControl.disabled=active;resetRuntime.disabled=active;resetRuntime.hidden=!worker||modeControl.value==='fresh';
   runButton.disabled=active;
   stopButton.hidden=!active;
   stopButton.disabled=!active;
@@ -137,7 +159,7 @@ if(main){
   let begun=false;
   clearTimeout(timer);
   timer=setTimeout(()=>fail('runtime','Loading timed out. Check your connection and run again.'),300000);
-  try{worker ||= new Worker(new URL('./worker.js',import.meta.url),{type:'module'})}
+  try{worker ||= new Worker(lessonSource('./worker.js'),{type:'module'})}
   catch(error){fail('runtime',error.message);return}
   const current=()=>busy&&generation===runGeneration&&attempt===attemptSerial;
   worker.onerror=event=>{if(current())fail('runtime',event.message||'The Python worker could not load.')};
@@ -177,22 +199,24 @@ if(main){
     return;
    }
    if(data.type!=='result')return;
-   lastSuccessfulRun={lesson:lesson.slug,source,result:data.value.result,stdout:data.value.stdout,runtime:{...data.runtime,initialization_retries:retries}};
+   const elapsed=Math.round(performance.now()-runStarted);
+   if(data.runtime?.warm_fallback){modeControl.value='fresh';describeMode();resetRuntime.hidden=true}
+   lastSuccessfulRun={lesson:lesson.slug,source,result:data.value.result,stdout:data.value.stdout,runtime:{...data.runtime,initialization_retries:retries,elapsed_ms:elapsed}};
    $('#output').textContent=(data.value.stdout?data.value.stdout+'\n':'')+JSON.stringify(data.value.result,null,2);
    visualize(data.value.result);
    $('#run-result').hidden=false;
    $('#export').disabled=false;
-   const elapsed=data.runtime?.timing?.total_ms;
    finish(Number.isFinite(elapsed)?`Completed in ${(elapsed/1000).toFixed(1)} s. Inspect your result.`:'Completed. Inspect your result.');
   };
-  try{worker.postMessage({source})}
+  try{worker.postMessage({source,mode:modeControl.value,preload})}
   catch(error){fail('runtime',error.message)}
  }
  runButton.onclick=()=>{
   if(busy)return;
   $('#attempt-error').hidden=true;
   $('#error-details').open=false;
-  state(true,'Preparing Linux + Bytewax…');
+  runStarted=performance.now();
+  state(true,'Preparing Python…');
   startAttempt(editor.value,++runGeneration,0);
  };
  editor.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runButton.click()}});
@@ -200,7 +224,7 @@ if(main){
  function download(contents,name,type){const url=URL.createObjectURL(new Blob([contents],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
  $('#download').onclick=async()=>{try{
  const names=['course.py','kafka_lab.py','recovery_drill.py','live_kafka.py','patterns.py'];
- const modules=Object.fromEntries(await Promise.all(names.map(async name=>{const r=await fetch(new URL('./python/'+name,import.meta.url));if(!r.ok)throw Error('Helper download failed');return [name,await r.text()]})));
+ const modules=Object.fromEntries(await Promise.all(names.map(async name=>{const r=await fetch(lessonSource('./python/'+name));if(!r.ok)throw Error('Helper download failed');return [name,await r.text()]})));
  const setup='# Install: python -m pip install bytewax==0.21.1 confluent-kafka==2.6.1\nimport tempfile, pathlib, sys, json\n_lab = tempfile.TemporaryDirectory(prefix="streaming-lab-")\n_modules = '+JSON.stringify(modules)+'\nfor _name, _text in _modules.items():\n    pathlib.Path(_lab.name, _name).write_text(_text)\nsys.path.insert(0, _lab.name)\n\n# Your experiment\n';
  download(setup+editor.value+'\nprint(json.dumps(result, indent=2))\n',lesson.slug+'.py','text/x-python');
  }catch(e){draftStatus(e.message)}};
