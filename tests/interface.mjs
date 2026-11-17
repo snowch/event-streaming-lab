@@ -76,5 +76,27 @@ try{
   assert.ok(await reading.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),lesson.slug+' diagram overflows');
  }
  assert.deepEqual(errors,[]);
+ // Prepared runtime bytes persist across chapters, while a changed manifest
+ // and denied storage both fall back to normal runtime preparation.
+ const cachePage=await browser.newPage();await cachePage.goto(base);
+ assert.equal(await cachePage.evaluate(async()=>{
+  const cache=await import('./runtime-cache.mjs');
+  return cache.writePreparedRuntime('interface-probe',new Uint8Array([0,97,115,109,1,0,0,0]),new Uint8Array([12,34,56]));
+ }),true);
+ await cachePage.goto(base+'lessons/'+lessons[0].slug+'.html');
+ assert.deepEqual(await cachePage.evaluate(async()=>{
+  const cache=await import('../runtime-cache.mjs'),saved=await cache.readPreparedRuntime('interface-probe');
+  await WebAssembly.compile(saved.engineBytes);
+  const changed=await cache.readPreparedRuntime('changed-manifest');
+  const descriptor=Object.getOwnPropertyDescriptor(globalThis,'indexedDB');
+  let denied,writeDenied;
+  try{
+   Object.defineProperty(globalThis,'indexedDB',{configurable:true,get(){throw new DOMException('Storage denied','SecurityError')}});
+   denied=await cache.readPreparedRuntime('interface-probe');
+   writeDenied=await cache.writePreparedRuntime('other',new Uint8Array(),new Uint8Array());
+  }finally{if(descriptor)Object.defineProperty(globalThis,'indexedDB',descriptor);else delete globalThis.indexedDB}
+  return {archive:[...saved.archive],changed,denied,writeDenied};
+ }),{archive:[12,34,56],changed:null,denied:null,writeDenied:false});
+ await cachePage.close();
  console.log('PASS GPU-style interface: centered chapters, self-hosted type, keyboard/outside/Escape navigation, themes, all 51 static phone layouts, inspectable source and no VM before activation.');
 }finally{await browser?.close();server.kill()}

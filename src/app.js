@@ -182,7 +182,8 @@ if(main){
    visualize(data.value.result);
    $('#run-result').hidden=false;
    $('#export').disabled=false;
-   finish('Completed. Inspect your result.');
+   const elapsed=data.runtime?.timing?.total_ms;
+   finish(Number.isFinite(elapsed)?`Completed in ${(elapsed/1000).toFixed(1)} s. Inspect your result.`:'Completed. Inspect your result.');
   };
   try{worker.postMessage({source})}
   catch(error){fail('runtime',error.message)}
