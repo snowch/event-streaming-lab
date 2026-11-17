@@ -117,7 +117,7 @@ try{
  await page.setViewportSize({width:390,height:844});
  for(const c of chapters){await page.goto(base+'advanced/'+c.slug+'.html');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),c.slug+' overflows');}
  await page.goto(base+'advanced/consistent-checkpoints.html');await page.screenshot({path:artifact('advanced-mobile.png'),fullPage:true});
- await page.goto(base+'advanced/zeromq-companion.html');assert.match(await page.locator('main').innerText(),/PROPOSAL/);
+ await page.goto(base+'advanced/zeromq-companion.html');assert.match(await page.locator('main').innerText(),/Messaging Patterns Lab/);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'companion overflow');
  await page.goto(base+'advanced/index.html');assert.equal(await page.locator('.reading-card').count(),chapters.length);
  await page.goto(base+'performance.html');assert.match(await page.locator('main').innerText(),/native-benchmark.py/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
