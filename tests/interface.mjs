@@ -37,10 +37,17 @@ try{
  assert.equal(await page.locator('.exercise-answer').evaluate(e=>e.open),true);
  await page.locator('.exercise-answer>summary').click();
  await page.locator('#code').focus();await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement.id),'run');
+ const outputPalette=()=>page.evaluate(()=>['#output','#error-trace'].map(selector=>{
+  const style=getComputedStyle(document.querySelector(selector));
+  return [style.color,style.backgroundColor];
+ }));
+ const lightOutput=await outputPalette();assert.deepEqual(lightOutput[0],lightOutput[1]);
+ assert.equal(await page.locator('#console-title').textContent(),'Console output');
  assert.equal(requests.some(url=>/\/(engine|assets\/linux)\//.test(url)),false,'navigation must not load the VM');
  await fs.mkdir('test-results',{recursive:true});
  await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'test-results/gpu-style-desktop.png',fullPage:true});
  await page.locator('#theme').click();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
+ const darkOutput=await outputPalette();assert.deepEqual(darkOutput[0],darkOutput[1]);
  assert.equal(await page.locator('#theme').textContent(),'Light theme');
  await page.screenshot({path:'test-results/gpu-style-dark.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.locator('.course-switcher>summary').click();

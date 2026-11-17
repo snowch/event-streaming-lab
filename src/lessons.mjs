@@ -226,15 +226,17 @@ result = consume_log(committed=1)`,
   "short": "The same order can belong to two different windows.",
   "tag": "Explicit clock model",
   "minutes": 25,
-  "goal": "Assign the same events using event and processing clocks and explain timestamp-quality failures.",
+  "goal": "Use one order to explain why its event time and processing time can place it in different windows.",
   "intro": "An offline checkout sends its morning orders at lunchtime. A processing-time dashboard reports a lunchtime spike. An event-time dashboard reports morning sales—once it can decide how long to wait for missing data.",
-  "concept": "Event time describes when a business event happened. Processing time describes when a particular operator handles it. Ingestion time is when a selected system accepts it. A timestamp must include units, origin and timezone. The helper uses explicit authored processing timestamps; none is a browser performance measurement.",
+  "concept": "Event time describes when the order happened. Processing time describes when an operator handles it. The editor supplies invented processing times measured in seconds from the same starting point as the order times. Window 0 includes 0 and excludes 10. Window 1 starts at 10 and excludes 20.",
   "code": `from course import clock_windows
 
-result = clock_windows()`,
+processing_times = {"a": 0, "b": 12, "c": 13, "d": 14, "e": 25}
+result = clock_windows(processing_times)`,
+  "prepare": "Select Run in Linux below with the code unchanged.",
   "predict": "Order c happened at event time 8 but is observed at processing time 13. Which ten-second window does each clock assign it to?",
-  "observe": "c belongs to event window 0 and processing window 1. d happened at 3 but is observed at 14, giving another delayed contribution to the earlier event-time window. Increasing the wait cannot repair a timestamp that describes the wrong event in the first place.",
-  "change": "Download the source and change the authored observation times. Which event-window assignments should remain invariant? Keep the experiment’s timestamp definitions visible in your report.",
+  "observe": "In Follow the evidence, use Next trace step until <code>id</code> is <code>c</code>. You can also find that row in the console’s <code>trace</code>. Compare <code>event_time</code> and <code>processing_time</code>, then check which windows they select in <code>event_window</code> and <code>processing_window</code>.",
+  "change": "In the editor, change the entry for order <code>c</code> in <code>processing_times</code> from <code>13</code> to <code>9</code>. Select Run in Linux again. Find the row with <code>id</code> <code>c</code> and compare its <code>event_window</code> and <code>processing_window</code> with the first run. Which changes? The event time and ten-second window rule stay fixed. The trace keeps the same order of rows, <code>a</code> through <code>e</code>, even when an edited timestamp changes their processing order.",
   "question": "A producer accidentally emits a timestamp a year in the future. What can happen to a maximum-seen-minus-delay watermark?",
   "hints": [
     "The maximum timestamp influences every subsequent watermark.",
@@ -242,7 +244,7 @@ result = clock_windows()`,
     "Validation belongs before advancing time from untrusted timestamps."
   ],
   "answer": "It can advance progress far beyond legitimate records, closing windows and classifying later normal arrivals as late. Validate plausible timestamp ranges, units and clock origins; quarantine suspicious records before they drive progress. A large out-of-order allowance is not a general cure for a bad clock.",
-  "limit": "This assigns bounded records to windows. It does not synchronize clocks or implement ingestion timestamp assignment in a broker.",
+  "limit": "This authored model assigns a fixed set of orders to windows. Processing times are inputs to the model. No latency is measured and no broker assigns the timestamps.",
   "source": "https://nightlies.apache.org/flink/flink-docs-stable/docs/concepts/time/",
   "extra": [
     [
@@ -254,7 +256,7 @@ result = clock_windows()`,
       "Out-of-order arrival can happen even with correct producer clocks because paths take different amounts of time. Clock skew can make the event timestamp wrong before transport starts. Watermarks encode an application progress policy; they do not establish clock accuracy or causal ordering between producers."
     ]
   ],
-  "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. Orders a..e have event timestamps 0,12,8,3,25 and authored processing timestamps 0,12,13,14,25."
+  "fixture": "The model supplies event times of 0, 12, 8, 3 and 25 seconds for orders a, b, c, d and e. The editor supplies their processing times. Each window is ten seconds wide."
 },
 {
   "slug": "close-a-window",
@@ -465,15 +467,21 @@ result = collect(flow, enriched)`,
   "short": "One event can create more than one answer.",
   "tag": "Bounded join reference",
   "minutes": 30,
-  "goal": "Calculate join multiplicity, explain interval bounds and distinguish match state from output volume.",
+  "goal": "Explain how widening the time bound or adding a receipt changes the number of matches for the same orders.",
   "intro": "Order x has two payment receipts with matching IDs. A join produces two rows. If the dashboard treats both as one paid order each, its count doubles even though the join followed its specified rule.",
-  "concept": "A stream-stream join matches records from two histories. Our nested-loop reference accepts a payment when its ID matches and its timestamp is between zero and horizon seconds after the order, inclusive. The code retains both finite inputs so you can inspect every candidate. A real online join needs progress and retention rules in addition to this predicate.",
+  "concept": "A stream-stream join matches records from two histories. Here, each payment’s order ID must match the order’s ID. The payment timestamp must be at or after the order time and no more than <code>horizon</code> seconds later. This authored model checks every order–receipt pair in two fixed lists. An online join also needs rules for tracking progress and removing old records.",
   "code": `from course import interval_join
 
-result = interval_join(horizon=10)`,
+payments = [
+    {"id": "x", "time": 7, "receipt": "p1"},
+    {"id": "x", "time": 9, "receipt": "p2"},
+    {"id": "y", "time": 20, "receipt": "p3"},
+]
+result = interval_join(horizon=10, payments=payments)`,
+  "prepare": "Select Run in Linux below with the code unchanged.",
   "predict": "How many output rows should order x produce? Does y’s receipt at 20 match an order at 4 with horizon 10?",
-  "observe": "x matches p1 and p2; y has no match. There are six candidate comparisons for two orders and three receipts. An index can reduce candidate search but cannot eliminate the cost of emitting two legitimate matches.",
-  "change": "Increase horizon to 20. Then inspect the helper and add another x receipt. Explain why output size can grow even when the number of logical order IDs does not.",
+  "observe": "In the console, inspect <code>matches</code> to see which receipts match each order. The <code>comparisons</code> count includes every order–receipt pair the model checks, even when a pair does not match.",
+  "change": "In the editor, change <code>horizon=10</code> to <code>horizon=20</code> and select Run in Linux. Which receipt is new in <code>matches</code>? Check whether <code>comparisons</code> changes. Keep <code>horizon=20</code>. In the <code>payments</code> list, add <code>{\"id\": \"x\", \"time\": 10, \"receipt\": \"p4\"},</code> on its own line before the closing bracket. Run again and compare <code>matches</code> and <code>comparisons</code>. How many receipts now match order <code>x</code>?",
   "question": "Can a hash join always make a many-to-many join O(n+m) total work?",
   "hints": [
     "Hashing helps locate matching groups.",
@@ -493,7 +501,7 @@ result = interval_join(horizon=10)`,
       "If each order should have one final payment, decide whether repeated receipts are duplicates, installments or conflicting updates. Deduplication by receipt ID differs from choosing one payment per order. Validate that rule before aggregating the join’s output."
     ]
   ],
-  "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. Orders x@0,y@4. Receipts x@7=p1,x@9=p2,y@20=p3. Interval bounds are inclusive."
+  "fixture": "The model supplies order x at 0 seconds and order y at 4 seconds. The editable payments list supplies the receipt ID, associated order ID and timestamp of each payment."
 },
 {
   "slug": "look-up-the-past",

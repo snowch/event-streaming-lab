@@ -2,11 +2,17 @@ import json,sys,subprocess,importlib.util
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'python'))
-from course import event_time,queue_run,recover,corrections,sessions,interval_join,capstone,operation_effort,latency_run,recovery_capacity
+from course import event_time,queue_run,recover,corrections,sessions,clock_windows,interval_join,capstone,operation_effort,latency_run,recovery_capacity
 lessons=json.loads(subprocess.check_output(['node','--input-type=module','-e',"import {lessons} from './src/lessons.mjs'; console.log(JSON.stringify(lessons))"],cwd=ROOT))
+def execute(source):
+    namespace={}
+    exec(source,namespace)
+    return namespace['result']
+
+sources={lesson['slug']:lesson['code'] for lesson in lessons}
 results=[];by_slug={}
 for lesson in lessons:
-    namespace={};exec(lesson['code'],namespace);results.append(namespace['result']);by_slug[lesson['slug']]=namespace['result']
+    result=execute(lesson['code']);results.append(result);by_slug[lesson['slug']]=result
 assert by_slug['stream-live-through-kafka']['live_arrivals']==4
 assert [r['total'] for r in by_slug['stream-live-through-kafka']['records']]==[12,8,17,24,17]
 assert [e['id'] for e in by_slug['follow-an-event']]==['a','e']
@@ -25,12 +31,25 @@ assert by_slug['evolve-an-event-schema']==[{'id':'a','pence':1200},{'id':'b','pe
 assert [r['offset'] for r in by_slug['retain-or-compact-a-log']['records']]==[3,4,5]
 assert [r['event_window'] for r in by_slug['choose-the-right-clock']['trace']]==[0,1,0,0,2]
 assert all(r['processing_time']>=r['event_time'] for r in by_slug['choose-the-right-clock']['trace'])
+assert clock_windows()==by_slug['choose-the-right-clock']
+clock_before=clock_windows()['trace']
+clock_after=execute(sources['choose-the-right-clock'].replace('"c": 13','"c": 9'))['trace']
+assert clock_before[2]=={'id':'c','event_time':8,'processing_time':13,'event_window':0,'processing_window':1}
+assert clock_after[2]=={'id':'c','event_time':8,'processing_time':9,'event_window':0,'processing_window':0}
+assert clock_before[:2]+clock_before[3:]==clock_after[:2]+clock_after[3:]
 assert [s['events'] for s in sessions(5)['sessions']]==[[0,4,8],[20]]
 assert [s['events'] for s in sessions(3)['sessions']]==[[0],[4],[8],[20]]
 assert corrections(5)['updates']==[{'window':0,'revision':1,'total':10},{'window':0,'revision':2,'total':15}]
 assert corrections(0)['late']==['b','c'] and corrections(10)['late']==[]
 assert interval_join(10)['matches']==[{'order':'x','receipt':'p1'},{'order':'x','receipt':'p2'}]
 assert len(interval_join(20)['matches'])==3
+assert interval_join()==by_slug['count-the-join-output']
+wider_source=sources['count-the-join-output'].replace('horizon=10','horizon=20')
+wider=execute(wider_source)
+assert wider['matches'][-1]=={'order':'y','receipt':'p3'} and wider['comparisons']==6
+more=execute(wider_source.replace('\n]', '\n    {"id": "x", "time": 10, "receipt": "p4"},\n]'))
+assert more['matches']==wider['matches'][:2]+[{'order':'x','receipt':'p4'},wider['matches'][-1]]
+assert more['comparisons']==8
 assert [r['region'] for r in by_slug['look-up-the-past']['trace']]==['West','East','West']
 assert operation_effort(8,2)['linear_dedup_comparisons']==10
 assert operation_effort(8,8)['linear_dedup_comparisons']==28
