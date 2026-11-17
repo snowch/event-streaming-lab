@@ -27,6 +27,15 @@ try{
  await toggle.click();await page.mouse.click(1350,200);assert.equal(await menu.evaluate(e=>e.open),false);
  await toggle.click();await menu.getByRole('link',{name:'3 Read a partitioned log',exact:true}).click();
  await page.waitForURL('**/read-a-partitioned-log.html');assert.equal(await page.locator('h1').textContent(),'Read a partitioned log');
+ await page.locator('.exercise-hints>summary').click();
+ assert.equal(await page.locator('.exercise-hints').evaluate(e=>e.open),true);
+ assert.equal(await page.locator('.exercise-answer').evaluate(e=>e.open),false,'Hints do not reveal the answer');
+ await page.locator('.hint-list details').first().locator('summary').click();
+ assert.equal(await page.locator('.hint-list details').first().evaluate(e=>e.open),true);
+ await page.locator('.exercise-hints>summary').click();
+ await page.locator('.exercise-answer>summary').click();
+ assert.equal(await page.locator('.exercise-answer').evaluate(e=>e.open),true);
+ await page.locator('.exercise-answer>summary').click();
  await page.locator('#code').focus();await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement.id),'run');
  assert.equal(requests.some(url=>/\/(engine|assets\/linux)\//.test(url)),false,'navigation must not load the VM');
  await fs.mkdir('test-results',{recursive:true});
