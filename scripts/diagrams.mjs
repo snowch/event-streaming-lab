@@ -39,9 +39,10 @@ const diagrams={
 'merge-a-session':flow('A bridging event can connect earlier observations',[
  ['Event-time observations','0, 8, then 4; later 20','Arrival order differs from timestamp order.'],['Session gap 5','4 bridges 0 and 8','Both neighboring gaps are within the session rule.'],['Resulting groups','[0, 4, 8] and [20]','The distant observation stays in its own session.']
  ],'This shows the starter event-time relationships. Sessions are not fixed-width buckets.'),
-'wait-for-late-events':flow('Arrival order and event time answer different questions',[
- ['Arrivals','Out-of-order timestamps','A later arrival can describe an earlier event.'],['EventClock','Watermark progress','Apply the declared lateness policy.'],['Window output','Accepted members','The real window operator emits the bounded result.'],['Late output','Too-late records','Inspect them separately from accepted results.']
-],'Run also provides the interactive watermark trace below. The fixed clock makes this fixture repeatable, not a latency benchmark.'),
+'wait-for-late-events':branch('Arrival order and event time answer different questions',
+ ['EventClock + window','Out-of-order arrivals','Compare event timestamps with watermark progress under the declared lateness policy.'],
+ [['Window output','Accepted members','The real window operator emits the bounded result.'],['Late side output','Too-late records','Inspect these separately from accepted window members.']],
+ 'A later arrival can describe an earlier event. Run provides the execution trace below. The frozen wall clock makes this fixture repeatable, not a latency benchmark.'),
 'correct-a-late-result':flow('Emission, correction and cleanup are separate boundaries',[
  ['First emission','Total 10','A provisional answer is visible.'],['Eligible late record','Revision: total 15','The authored policy corrects that answer.'],['Cleanup boundary','Forget retained state','A later arrival cannot use that state.'],['After cleanup','Late-data decision','Route or reconcile under a new contract.']
 ],'This is the labelled correction reference policy. It is not presented as a built-in Bytewax retraction operator.'),
