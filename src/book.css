@@ -313,3 +313,13 @@ footer p,footer span{font-size:12px}
 .course-home .closing p{font-size:15px;color:var(--muted);margin:0;max-width:70ch}
 @media(max-width:900px){.course-home{padding:28px 32px 0}.course-home .course-part{grid-template-columns:1fr;gap:12px}.course-home .part-heading{margin-top:0}.course-home .part-heading h3{font-size:23px;margin-bottom:6px}.course-home .part-heading p{max-width:65ch}.course-home .chapter-link{padding:13px 4px}}
 @media(max-width:520px){.course-home{padding:22px 20px 0}.home-intro{margin-bottom:22px;padding-bottom:22px}.home-intro h1{font-size:34px}.home-description{font-size:16px;margin-bottom:16px}.home-actions{gap:8px 18px}.home-meta{font-size:12px;margin-top:12px}.home-meta>span{padding:0 3px}.course-home .curriculum>h2{font-size:23px;margin-bottom:18px}.course-home .part-heading h3{font-size:21px}.chapter-copy>strong{font-size:16px}.chapter-copy>span{font-size:13px}.course-home .chapter-link{gap:10px}.chapter-kind{font-size:10px;padding:2px 5px}}
+
+/* Runtime choices remain beside the editor; details stay collapsed. */
+.workbench .runtime-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px}
+.workbench .runtime-controls label{font-size:13px;color:var(--muted)}
+.workbench .runtime-controls select{max-width:100%;min-height:42px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);padding:6px 10px;font:14px "IBM Plex Sans",sans-serif}
+.workbench .runtime-controls button{background:var(--surface);border:1px solid var(--line);color:var(--ink);font-size:13px}
+.lesson .workbench .runtime-mode-note{padding:0 16px;margin:0 0 8px;color:var(--muted);font-size:13px;line-height:1.6;max-width:76ch}
+.lesson details.runtime-contract{display:block;background:transparent;border:0;border-top:1px solid var(--line);padding:10px 0;margin:20px 0 12px;border-radius:0}
+.lesson .runtime-contract>summary{font-size:14px;color:var(--muted)}
+.lesson .runtime-contract>p,.lesson .runtime-contract>a{font-size:14px;line-height:1.65}

@@ -1,8 +1,9 @@
 import {WASI,File,Directory,OpenFile,PreopenDirectory,ConsoleStdout} from './engine/wasi/index.js';
 import {gunzipSync} from './engine/fflate.mjs';
 import {clockPoll} from './wasi-poll.mjs';
+import {WarmSession,supportsWarmSession} from './warm-session.mjs';
 import {readPreparedRuntime,writePreparedRuntime} from './runtime-cache.mjs';
-let ready,busy=false;
+let ready,busy=false,session,fastUnavailable=false,fastReason;
 const decoder=new TextDecoder(),encoder=new TextEncoder();
 const phase=(message,extra={})=>postMessage({type:'loading',message,...extra});
 
@@ -49,7 +50,7 @@ async function setup(){
  const response=await fetch(new URL('./assets/linux/manifest.json',import.meta.url));
  if(!response.ok)throw Error('Runtime manifest unavailable. Reload and retry.');
  const prepared=await prepareAssets(await response.json());
- const names=['course.py','kafka_lab.py','recovery_drill.py','live_kafka.py','patterns.py','runner.py'];
+ const names=['course.py','kafka_lab.py','recovery_drill.py','live_kafka.py','patterns.py','runner.py','session_runner.py'];
  const helpers=await Promise.all(names.map(async name=>{
   const r=await fetch(new URL('./python/'+name,import.meta.url));if(!r.ok)throw Error('Could not load '+name);
   return [name,new Uint8Array(await r.arrayBuffer())];
@@ -78,7 +79,7 @@ function indexArchive(archive){
 function readonlyFile(data){
  const file=new File(new Uint8Array(),{readonly:true});file.data=data;return file;
 }
-function filesystem(entries,helpers,source){
+function filesystem(entries,helpers,source,config=null){
  const tree=new Directory(new Map());
  for(const {parts,data,directory} of entries){
   let dir=tree;
@@ -88,12 +89,15 @@ function filesystem(entries,helpers,source){
  }
  const programs=new Map(helpers.map(([name,data])=>[name,readonlyFile(data)]));
  programs.set('experiment.py',readonlyFile(encoder.encode(source)));
+ if(config)programs.set('session-config.json',readonlyFile(encoder.encode(JSON.stringify(config))));
  tree.contents.set('python',new Directory(programs));
- tree.contents.set('run-python',readonlyFile(encoder.encode(`#!/bin/sh
+ const launch=`#!/bin/sh
 BASE=/mnt/lab/bundle
 export PYTHONHOME="$BASE/python" PYTHONPATH="/mnt/lab/python:$BASE/site-packages" PYTHONDONTWRITEBYTECODE=1 LAB_PYTHON=/tmp/run-python
 exec /tmp/ld.so --library-path "$BASE/glibc" "$BASE/python/bin/python3.12" -S -u "$@"
-`)));
+`;
+ tree.contents.set('run-python',readonlyFile(encoder.encode(launch)));
+ tree.contents.set('session-python',readonlyFile(encoder.encode(launch.replaceAll('/tmp/ld.so','/opt/lab/ld.so').replaceAll('LAB_PYTHON=/tmp/run-python','LAB_PYTHON=/opt/lab/run-python'))));
  return tree.contents;
 }
 
@@ -103,6 +107,16 @@ self.onmessage=async({data})=>{
  try{
   ready ||= setup().catch(error=>{ready=null;throw error});
   const {module,entries,helpers,assetSource}=await ready;
+  if(data.mode!=='fresh'&&!supportsWarmSession()){fastUnavailable=true;fastReason='Fast reruns are unavailable in this browser.'}
+  if(data.mode==='fresh'&&session){await session.close();session=null}
+  if(data.mode!=='fresh'&&supportsWarmSession()&&!fastUnavailable){
+   session ||= new WarmSession({module,files:()=>filesystem(entries,helpers,'',{preload:[...new Set((Array.isArray(data.preload)?data.preload:['course']).filter(name=>['course','patterns','kafka_lab','live_kafka','recovery_drill'].includes(name)))],packages:{bytewax:'bytewax',confluent_kafka:'confluent-kafka'},description:{broker:'librdkafka in-memory Kafka simulator'}}),loading:phase,running:()=>postMessage({type:'running'})});
+   const response=await session.run(data.source,{started,preparation:performance.now()-started,assetSource:reused?'page-memory':assetSource});
+   if(!response.warm_unavailable){postMessage(response);return}
+   fastUnavailable=true;fastReason=response.message;
+   phase('Fast mode is unavailable. Preparing fresh Linux…');
+   await session.close();session=null;
+  }
   booted=performance.now();
   phase('Starting a fresh Linux guest…',{stage:'boot'});let terminal='',runningSent=false;
   const stdout=new ConsoleStdout(bytes=>{
@@ -123,7 +137,7 @@ self.onmessage=async({data})=>{
   const frames=terminal.split(/\r?\n/).filter(line=>line.startsWith('ESL_RESULT '));
   if(!frames.length)throw Error('The Linux guest exited without a result. Stop and retry.\n'+terminal.slice(-5000));
   const result=JSON.parse(frames.at(-1).slice('ESL_RESULT '.length));
-  if(result.type==='result')result.runtime.timing={preparation_ms:Math.round(booted-started),guest_startup_ms:Math.round(running-booted),execution_ms:Math.round(performance.now()-running),total_ms:Math.round(performance.now()-started),asset_source:reused?'page-memory':assetSource};
+  if(result.type==='result'){result.runtime.mode='fresh';result.runtime.procfs=true;if(fastReason)result.runtime.warm_fallback=fastReason;result.runtime.timing={preparation_ms:Math.round(booted-started),guest_startup_ms:Math.round(running-booted),execution_ms:Math.round(performance.now()-running),total_ms:Math.round(performance.now()-started),asset_source:reused?'page-memory':assetSource};}
   postMessage(result);
  }catch(error){postMessage({type:'error',origin:'runtime',message:String(error.stack||error)})}
  finally{busy=false}

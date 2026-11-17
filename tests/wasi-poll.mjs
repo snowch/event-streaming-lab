@@ -6,6 +6,11 @@ const input=0,output=1024,nEvents=2048;
 function reset(){new Uint8Array(memory.buffer).fill(0)}
 reset();v.setBigUint64(0,42n,true);v.setUint8(8,1);v.setUint32(16,0,true);
 assert.equal(clockPoll(wasi,input,output,1,nEvents),6,'idle input must not be misreported as EOF');
+reset();v.setBigUint64(0,42n,true);v.setUint8(8,1);v.setUint32(16,0,true);
+assert.equal(clockPoll(wasi,input,output,1,nEvents,17),0);
+assert.equal(v.getUint32(nEvents,true),1);
+assert.equal(v.getUint8(output+10),1);
+assert.equal(v.getBigUint64(output+16,true),17n,'queued input must be readable without a false EOF');
 reset();v.setBigUint64(0,7n,true);v.setUint32(16,1,true);v.setBigUint64(24,3000000n,true);
 const before=performance.now();clockPoll(wasi,input,output,1,nEvents);
 assert.ok(performance.now()-before>=3,'relative clocks must not fire before their deadline');

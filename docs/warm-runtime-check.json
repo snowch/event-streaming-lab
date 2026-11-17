@@ -1,0 +1,270 @@
+{
+  "date": "2026-11-17",
+  "method": "Unpublished warm prototype, exact published editor sources, one sequential warm VM per course, desktop Chromium; both courses active concurrently. Results matched native worked examples. First case includes guest/helper startup. Remaining mixed workloads are not interchangeable operator benchmarks.",
+  "courses": [
+    {
+      "name": "messaging-patterns-lab",
+      "examples": 20,
+      "median_after_first_ms": 381,
+      "runs": [
+        {
+          "slug": "request-and-reply",
+          "elapsed_ms": 19530,
+          "result_type": "result"
+        },
+        {
+          "slug": "preserve-message-frames",
+          "elapsed_ms": 414,
+          "result_type": "result"
+        },
+        {
+          "slug": "respect-the-req-state-machine",
+          "elapsed_ms": 371,
+          "result_type": "result"
+        },
+        {
+          "slug": "send-work-down-a-pipeline",
+          "elapsed_ms": 378,
+          "result_type": "result"
+        },
+        {
+          "slug": "filter-a-publication",
+          "elapsed_ms": 362,
+          "result_type": "result"
+        },
+        {
+          "slug": "meet-the-late-subscriber",
+          "elapsed_ms": 356,
+          "result_type": "result"
+        },
+        {
+          "slug": "detect-a-sequence-gap",
+          "elapsed_ms": 395,
+          "result_type": "result"
+        },
+        {
+          "slug": "receive-without-blocking",
+          "elapsed_ms": 365,
+          "result_type": "result"
+        },
+        {
+          "slug": "bound-a-socket-queue",
+          "elapsed_ms": 361,
+          "result_type": "result"
+        },
+        {
+          "slug": "route-an-envelope",
+          "elapsed_ms": 370,
+          "result_type": "result"
+        },
+        {
+          "slug": "reject-an-unknown-route",
+          "elapsed_ms": 355,
+          "result_type": "result"
+        },
+        {
+          "slug": "match-out-of-order-replies",
+          "elapsed_ms": 434,
+          "result_type": "result"
+        },
+        {
+          "slug": "forward-through-a-proxy",
+          "elapsed_ms": 5099,
+          "result_type": "result"
+        },
+        {
+          "slug": "retry-with-stable-identity",
+          "elapsed_ms": 381,
+          "result_type": "result"
+        },
+        {
+          "slug": "dispatch-with-worker-credit",
+          "elapsed_ms": 390,
+          "result_type": "result"
+        },
+        {
+          "slug": "replay-a-cached-value",
+          "elapsed_ms": 448,
+          "result_type": "result"
+        },
+        {
+          "slug": "observe-a-connection",
+          "elapsed_ms": 3333,
+          "result_type": "result"
+        },
+        {
+          "slug": "choose-connect-and-close-policy",
+          "elapsed_ms": 372,
+          "result_type": "result"
+        },
+        {
+          "slug": "encrypt-a-connection",
+          "elapsed_ms": 583,
+          "result_type": "result"
+        },
+        {
+          "slug": "diagnose-the-missing-receipt",
+          "elapsed_ms": 412,
+          "result_type": "result"
+        }
+      ]
+    },
+    {
+      "name": "event-streaming-lab",
+      "examples": 30,
+      "median_after_first_ms": 707,
+      "runs": [
+        {
+          "slug": "follow-an-event",
+          "elapsed_ms": 28714,
+          "result_type": "result"
+        },
+        {
+          "slug": "evolve-an-event-schema",
+          "elapsed_ms": 588,
+          "result_type": "result"
+        },
+        {
+          "slug": "read-a-partitioned-log",
+          "elapsed_ms": 4244,
+          "result_type": "result"
+        },
+        {
+          "slug": "stream-live-through-kafka",
+          "elapsed_ms": 19597,
+          "result_type": "result"
+        },
+        {
+          "slug": "retain-or-compact-a-log",
+          "elapsed_ms": 477,
+          "result_type": "result"
+        },
+        {
+          "slug": "give-consumers-their-own-position",
+          "elapsed_ms": 5495,
+          "result_type": "result"
+        },
+        {
+          "slug": "route-and-quarantine",
+          "elapsed_ms": 819,
+          "result_type": "result"
+        },
+        {
+          "slug": "expand-and-rekey",
+          "elapsed_ms": 688,
+          "result_type": "result"
+        },
+        {
+          "slug": "choose-the-right-clock",
+          "elapsed_ms": 464,
+          "result_type": "result"
+        },
+        {
+          "slug": "close-a-window",
+          "elapsed_ms": 893,
+          "result_type": "result"
+        },
+        {
+          "slug": "merge-a-session",
+          "elapsed_ms": 901,
+          "result_type": "result"
+        },
+        {
+          "slug": "wait-for-late-events",
+          "elapsed_ms": 912,
+          "result_type": "result"
+        },
+        {
+          "slug": "correct-a-late-result",
+          "elapsed_ms": 388,
+          "result_type": "result"
+        },
+        {
+          "slug": "keep-state-by-key",
+          "elapsed_ms": 708,
+          "result_type": "result"
+        },
+        {
+          "slug": "build-a-materialized-view",
+          "elapsed_ms": 707,
+          "result_type": "result"
+        },
+        {
+          "slug": "enrich-a-stream",
+          "elapsed_ms": 576,
+          "result_type": "result"
+        },
+        {
+          "slug": "join-changing-streams",
+          "elapsed_ms": 866,
+          "result_type": "result"
+        },
+        {
+          "slug": "count-the-join-output",
+          "elapsed_ms": 397,
+          "result_type": "result"
+        },
+        {
+          "slug": "look-up-the-past",
+          "elapsed_ms": 390,
+          "result_type": "result"
+        },
+        {
+          "slug": "detect-event-sequences",
+          "elapsed_ms": 748,
+          "result_type": "result"
+        },
+        {
+          "slug": "replay-without-double-counting",
+          "elapsed_ms": 888,
+          "result_type": "result"
+        },
+        {
+          "slug": "forget-state-deliberately",
+          "elapsed_ms": 682,
+          "result_type": "result"
+        },
+        {
+          "slug": "recover-after-a-failure",
+          "elapsed_ms": 31119,
+          "result_type": "result"
+        },
+        {
+          "slug": "retry-with-a-budget",
+          "elapsed_ms": 562,
+          "result_type": "result"
+        },
+        {
+          "slug": "measure-operation-effort",
+          "elapsed_ms": 374,
+          "result_type": "result"
+        },
+        {
+          "slug": "measure-latency-and-batching",
+          "elapsed_ms": 368,
+          "result_type": "result"
+        },
+        {
+          "slug": "when-the-consumer-falls-behind",
+          "elapsed_ms": 359,
+          "result_type": "result"
+        },
+        {
+          "slug": "budget-for-recovery",
+          "elapsed_ms": 368,
+          "result_type": "result"
+        },
+        {
+          "slug": "run-a-bounded-backfill",
+          "elapsed_ms": 2500,
+          "result_type": "result"
+        },
+        {
+          "slug": "resolve-the-streaming-incident",
+          "elapsed_ms": 1039,
+          "result_type": "result"
+        }
+      ]
+    }
+  ]
+}
