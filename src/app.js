@@ -2,7 +2,7 @@ import {lessons} from './lessons.mjs';
 const $=s=>document.querySelector(s);
 const read=k=>{try{return localStorage.getItem('esl:'+k)}catch{return null}};
 const save=(k,v)=>{try{localStorage.setItem('esl:'+k,v);return true}catch{return false}};
-function progress(){document.querySelectorAll('[data-progress]').forEach(el=>{el.textContent=read('done:'+el.dataset.progress)==='true'?'READ ✓':el.closest('.lesson-card')?'INVESTIGATE':''})}
+function progress(){document.querySelectorAll('[data-progress]').forEach(el=>{el.textContent=read('done:'+el.dataset.progress)==='true'?'Read ✓':el.dataset.kind==='reading'?'Reading':el.closest('.lesson-card')?'Lab':''})}
 progress();addEventListener('storage',progress);
 function themeLabel(){const dark=document.documentElement.dataset.theme==='dark';$('#theme').textContent=dark?'Light theme':'Dark theme';$('#theme').setAttribute('aria-label',dark?'Switch to light theme':'Switch to dark theme')}
 $('#theme').onclick=()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=theme;save('theme',theme);themeLabel()};themeLabel();

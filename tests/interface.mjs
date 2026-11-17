@@ -76,6 +76,16 @@ try{
   assert.ok(await reading.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),lesson.slug+' diagram overflows');
  }
  assert.deepEqual(errors,[]);
+ // The compact course entry reaches an actual lesson in the first screen.
+ await page.goto(base);await page.evaluate(()=>document.fonts.ready);
+ for(const width of [390,834]){
+  await page.setViewportSize({width,height:844});
+  const first=await page.locator('.chapter-link').first().boundingBox();
+  assert.ok(first.y+first.height<=844,'First lesson is visible in the opening viewport at '+width);
+  assert.equal(await page.locator('.chapter-link').count(),46);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.screenshot({path:'test-results/home-'+width+'.png'});
+ }
  // Prepared runtime bytes persist across chapters, while a changed manifest
  // and denied storage both fall back to normal runtime preparation.
  const cachePage=await browser.newPage();await cachePage.goto(base);
