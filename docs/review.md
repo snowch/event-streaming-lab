@@ -91,6 +91,41 @@ A user screenshot showed that the old practice structure remained visually repet
 
 The startup-fault test now isolates bounded host retry/Stop behavior without fabricating any result, then runs the real source with a fresh initialization budget. Combining an injected failed attempt with a cold VM boot had consumed the retry allowance and produced an inconclusive stopped boot. Real learner code remains never automatically retried.
 
+## Editable clock and join examples, run and draft recovery — 17 November 2026
+
+Applied the learning-design and UX skills to the two editable experiments and
+the shared workbench. The next action is visible with optional sections closed.
+In Choose the right clock, the editor supplies processing times, and the
+instructions point to order `c` and its time and window fields. A change from
+13 to 9 seconds moves `processing_window` from 1 to 0. Order `c` keeps event
+time 8 and `event_window` 0. The trace keeps the same display order. In Count
+the join output, widening the time bound adds the existing receipt `p3` while
+the comparison count stays at six. Adding `p4` makes four matches and eight
+comparisons. Both are authored models. The Bytewax and Kafka simulator
+boundaries remain visible where those systems are used.
+
+The workbench presents execution errors separately from the last successful
+console and trace. Export run keeps that successful source and output. Run and
+Stop return keyboard focus to the next available control, and download progress
+appears while a measured total is available. Restore code keeps the most
+recently replaced draft, including across reloads when storage is available.
+Recovered code opens from the beginning of the file. Earlier RxPY migration
+downloads remain available separately. Technical detail uses the same readable
+palette as successful console output in both themes.
+
+`npm run check:core` passed all 30 native examples, the new variants, both
+native performance backends, catalogue and WASI checks, and static/interface
+checks across 51 pages. An independent Chromium walkthrough ran the original
+clock and join examples and all stated edits in actual browser Linux. It
+verified Run and Stop focus, retained console and trace after a Python error,
+an unchanged run JSON export, and draft recovery after reload at phone width.
+Restoring and recovering the beginning of the source was checked at 320px,
+390px and 1440px.
+The publication workflow runs the complete Linux browser matrix.
+
+These checks address instructions, execution and interaction. No learner study
+measured understanding or transfer.
+
 
 ## Explanatory diagrams
 
