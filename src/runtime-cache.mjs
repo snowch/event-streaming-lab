@@ -32,8 +32,15 @@ async function access(mode,action){
 }
 export async function readPreparedRuntime(key){
  const cached=await access('readonly',store=>store.get('current'));
- return cached?.key===key&&cached.engineBytes instanceof Uint8Array&&cached.archive instanceof Uint8Array?cached:null;
+ if(cached?.key!==key||!(cached.engine instanceof Blob)||!(cached.archive instanceof Blob))return null;
+ try{
+  const [engine,archive]=await Promise.all([cached.engine.arrayBuffer(),cached.archive.arrayBuffer()]);
+  return {engineBytes:new Uint8Array(engine),archive:new Uint8Array(archive)};
+ }catch{return null}
 }
 export async function writePreparedRuntime(key,engineBytes,archive){
- return Boolean(await access('readwrite',store=>store.put({key,engineBytes,archive},'current')));
+ // Blobs are stored out of line. The combined arrays exceed Chromium's
+ // approximately 127 MiB limit for a serialized IndexedDB record.
+ const value={key,engine:new Blob([engineBytes]),archive:new Blob([archive])};
+ return Boolean(await access('readwrite',store=>store.put(value,'current')));
 }
