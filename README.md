@@ -34,6 +34,8 @@ npx playwright install --with-deps chromium
 npm run check
 ```
 
+Pull requests run `npm run check:core`: native examples, invariants, build, links and the complete interface/reading checks. Every Pages release additionally runs all 30 examples and interaction journeys inside actual Chromium/Linux in four parallel jobs; deployment waits for every job. `npm run check` runs the same full gate locally in one sequence.
+
 The browser runner uses `/usr/bin/chromium` outside CI, or `CHROMIUM_PATH`. CI uses Playwright's pinned Chromium. Checks compare all published snippets with native answers and exercise errors/retry, infinite-loop Stop/restart, source/result export, legacy draft migration, stale output, reading marks, themes, mobile layouts and project-subpath hosting. External browser requests are blocked during the suite. Screenshots are saved to `test-results/`.
 
 The Pages workflow checks pushes and pull requests. Successful main-branch checks publish `dist/`. Keep Pages configured to GitHub Actions.

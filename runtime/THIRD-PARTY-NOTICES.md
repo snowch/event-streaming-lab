@@ -22,3 +22,7 @@ The course's Apache-2.0 code and CC BY-NC prose licenses apply to its original w
 | fflate 0.8.3 | MIT, copyright Arjun Barrett; [source](https://github.com/101arrowz/fflate), license text copied into the generated site |
 
 No networking proxy, xterm, JSLinux x86 emulator or external execution service is shipped. The guest uses real TCP loopback. The custom worker provides WASI file and clock integration; it does not replace Bytewax operators or fabricate engine output.
+
+## Course typography
+
+IBM Plex Sans and IBM Plex Mono use the SIL Open Font License 1.1. The unchanged font bytes and license notices are self-hosted in [`assets/fonts`](../assets/fonts/README.txt), with a pinned GPU Lab release source and SHA-256 provenance. They load for reading independently of the Linux runtime.

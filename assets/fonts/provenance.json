@@ -1,0 +1,35 @@
+{
+  "source": "https://snowch.github.io/gpu-lab/releases/7c64ab99933d578f7a17db931417f664223ba8c1750cabe56860851a2bc459e7/assets/fonts/",
+  "files": [
+    {
+      "file": "plex-sans.woff2",
+      "bytes": 45712,
+      "sha256": "e2291e842cf5af167122a22881a740c7f2dda7716f1e8cd76680264f4a859470"
+    },
+    {
+      "file": "plex-mono-400.woff2",
+      "bytes": 14708,
+      "sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7"
+    },
+    {
+      "file": "plex-mono-600.woff2",
+      "bytes": 15620,
+      "sha256": "0d1f0b8d0722224e32e9f28261bdc86c79115be73444ae5eceb73976a1bcdf83"
+    },
+    {
+      "file": "ibmplexmono-OFL.txt",
+      "bytes": 4456,
+      "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da"
+    },
+    {
+      "file": "ibmplexsans-OFL.txt",
+      "bytes": 4456,
+      "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da"
+    },
+    {
+      "file": "README.txt",
+      "bytes": 742,
+      "sha256": "f619c0448caa3d2efd93de3f4d25ddc1f09a69c1e2c591b22a678bc9373ddb9f"
+    }
+  ]
+}

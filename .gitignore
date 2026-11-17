@@ -1,7 +1,8 @@
 node_modules/
 dist/
 .preview/
-assets/
+assets/*
+!assets/fonts/
 __pycache__/
 test-results/
 .venv/

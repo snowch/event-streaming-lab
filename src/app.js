@@ -4,9 +4,14 @@ const read=k=>{try{return localStorage.getItem('esl:'+k)}catch{return null}};
 const save=(k,v)=>{try{localStorage.setItem('esl:'+k,v);return true}catch{return false}};
 function progress(){document.querySelectorAll('[data-progress]').forEach(el=>{el.textContent=read('done:'+el.dataset.progress)==='true'?'READ ✓':el.closest('.lesson-card')?'INVESTIGATE':''})}
 progress();addEventListener('storage',progress);
-$('#theme').onclick=()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=theme;save('theme',theme)};
-const narrow=matchMedia('(max-width: 900px)');const collapse=()=>{if(narrow.matches)document.querySelector('.contents')?.removeAttribute('open')};collapse();narrow.addEventListener('change',collapse);
-const currentLink=document.querySelector('.contents [aria-current]');const rail=document.querySelector('.sidebar');if(currentLink&&rail&&!narrow.matches)rail.scrollTop=Math.max(0,currentLink.offsetTop-rail.clientHeight/2);
+function themeLabel(){const dark=document.documentElement.dataset.theme==='dark';$('#theme').textContent=dark?'Light theme':'Dark theme';$('#theme').setAttribute('aria-label',dark?'Switch to light theme':'Switch to dark theme')}
+$('#theme').onclick=()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=theme;save('theme',theme);themeLabel()};themeLabel();
+const courseMenu=document.querySelector('.course-switcher');
+if(courseMenu){
+ courseMenu.dataset.enhanced='true';
+ document.addEventListener('pointerdown',event=>{if(!courseMenu.contains(event.target))courseMenu.open=false});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&courseMenu.open){courseMenu.open=false;courseMenu.querySelector('summary').focus()}});
+}
 const main=$('[data-lesson]');
 if(main){
  const lesson=lessons[Number(main.dataset.lesson)], editor=$('#code');let worker,timer,runRecord,busy=false,runGeneration=0,attemptSerial=0;
