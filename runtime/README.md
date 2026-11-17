@@ -37,7 +37,7 @@ The tar is indexed once per worker and only read-only file bytes are shared. Fre
 
 Run exports include preparation, guest startup, execution and total milliseconds plus the asset source (`download`, `browser-cache` or `page-memory`). These include local emulation and do not measure native or distributed service throughput.
 
-Guest startup spans WebAssembly instantiation, Linux boot and runner initialization. Execution spans the running marker through result collection, including program imports, serialization and guest exit. It is not an isolated operator timer.
+Guest startup spans WebAssembly instantiation, Linux boot and runner initialization. Execution spans the running marker through result collection, including program imports, serialization and result collection. It is not an isolated operator timer.
 
 ## Warm Linux with isolated Python processes
 
