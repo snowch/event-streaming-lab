@@ -90,3 +90,10 @@ The expanded 30-investigation runtime also passed the complete GitHub Actions Li
 A user screenshot showed that the old practice structure remained visually repetitive after the typography revision: a generic transfer paragraph, large section gaps and four equal disclosure rows. Applied both local skills to replace it with one compact question card, a grouped progressive-hints control, a separate explanation reveal and a quieter scope note. Removed the repeated generic cost-transfer paragraph while retaining all five operation accounts and the independent transfer task. UI revision queries keep the CSS and module current for returning readers. The same exercise component is used by Messaging Patterns Lab.
 
 The startup-fault test now isolates bounded host retry/Stop behavior without fabricating any result, then runs the real source with a fresh initialization budget. Combining an injected failed attempt with a cold VM boot had consumed the retry allowance and produced an inconclusive stopped boot. Real learner code remains never automatically retried.
+
+
+## Explanatory diagrams
+
+Added pattern-specific semantic HTML/SVG diagrams before lab execution. Request/reply timelines, multipart frame groups, actual pattern-state relationships, branching policies and recovery paths use distinct layouts. Parallel partitions/readers/keyed histories and alternative socket settings use branch diagrams, so arrows do not imply a false serial pipeline. Every figure is labelled conceptual and describes the starter/example boundary; actual execution evidence remains in the console and run exports. Reading and diagrams require no JavaScript or runtime download. Phone checks cover each figure’s containing page and figures remain selectable/readable text.
+
+The browser completion check now waits for Run to become available again. A status containing “startup stalled · retrying” is a nonterminal initialization state and must not be mistaken for a failed program. Source execution is still never automatically retried.

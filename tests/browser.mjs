@@ -54,7 +54,7 @@ try{
    await page.unroute('**/worker.js');
   }
   await page.locator('#run').click();
-  try{await page.waitForFunction(()=>/Completed|error|Stopped|timed out|stalled|failed/.test(document.querySelector('#status').textContent),undefined,{timeout:240000})}
+  try{await page.waitForFunction(()=>!document.querySelector('#run').disabled,undefined,{timeout:240000})}
   catch(error){await page.screenshot({path:artifact('failure-')+lessons[i].slug+'.png',fullPage:true});await fs.writeFile(artifact('failure-')+lessons[i].slug+'.json',JSON.stringify({status:await page.locator('#status').textContent(),output:await page.locator('#output').textContent(),source:await page.locator('#code').inputValue()},null,2));throw error}
   const status=await page.locator('#status').textContent();
   if(!status.includes('Completed')){await page.screenshot({path:artifact('failure-')+lessons[i].slug+'.png',fullPage:true});await fs.writeFile(artifact('failure-')+lessons[i].slug+'.json',JSON.stringify({status,output:await page.locator('#output').textContent()},null,2))}
