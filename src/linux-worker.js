@@ -4,9 +4,9 @@ import {clockPoll} from './wasi-poll.mjs';
 import {WarmSession,supportsWarmSession} from './warm-session.mjs';
 import {readPreparedRuntime,writePreparedRuntime} from './runtime-cache.mjs';
 const workerUrl=new URL(import.meta.url);
-let ready,busy=false,session,fastUnavailable=false,fastReason;
+let ready,busy=false,session,fastUnavailable=false,fastReason,preparationTask,backgroundTiming,lastLoading;
 const decoder=new TextDecoder(),encoder=new TextEncoder();
-const phase=(message,extra={})=>postMessage({type:'loading',message,...extra});
+const phase=(message,extra={})=>{lastLoading={type:'loading',message,...extra};postMessage(lastLoading)};
 
 async function inflate(bytes){
  if(typeof DecompressionStream==='undefined')return gunzipSync(bytes);
@@ -34,9 +34,9 @@ async function prepareAssets(manifest){
  }
  let downloaded=0,lastReport=0;
  const total=manifest.assets.reduce((n,item)=>n+item.bytes,0);
- const report=n=>{downloaded+=n;if(performance.now()-lastReport>250||downloaded===total){lastReport=performance.now();phase(`Loading Linux + Bytewax · ${Math.floor(downloaded/1048576)} / ${Math.ceil(total/1048576)} MiB`,{downloaded,total})}};
+ const report=n=>{downloaded+=n;if(performance.now()-lastReport>250||downloaded===total){lastReport=performance.now();phase(`Loading Python · ${Math.floor(downloaded/1048576)} / ${Math.ceil(total/1048576)} MiB`,{downloaded,total})}};
  const bytes=await Promise.all(manifest.assets.map(item=>asset(item,report)));
- phase('Compiling the Linux VM…');
+ phase('Preparing Python…');
  const pieces=await Promise.all(bytes.slice(0,3).map(inflate));
  const engineBytes=new Uint8Array(pieces.reduce((n,b)=>n+b.length,0));let offset=0;
  for(const piece of pieces){engineBytes.set(piece,offset);offset+=piece.length}
@@ -102,24 +102,51 @@ exec /tmp/ld.so --library-path "$BASE/glibc" "$BASE/python/bin/python3.12" -S -u
  return tree.contents;
 }
 
+function warmSession(runtime,data){
+ const {module,entries,helpers}=runtime;
+ return session ||= new WarmSession({module,files:()=>filesystem(entries,helpers,'',{preload:[...new Set((Array.isArray(data.preload)?data.preload:['course']).filter(name=>['course','patterns','kafka_lab','live_kafka','recovery_drill'].includes(name)))],packages:{bytewax:'bytewax',confluent_kafka:'confluent-kafka'},description:{broker:'librdkafka in-memory Kafka simulator'}}),loading:phase,running:()=>postMessage({type:'running'})});
+}
+async function prepareRuntime(data){
+ const started=performance.now();
+ ready ||= setup().catch(error=>{ready=null;throw error});
+ const runtime=await ready;
+ if(data.mode!=='fresh'&&supportsWarmSession()&&!fastUnavailable){
+  const state=await warmSession(runtime,data).prepare();
+  if(!state.available){
+   fastUnavailable=true;fastReason=state.message;
+   await session.close();session=null;
+  }
+ }
+ backgroundTiming={total_ms:Math.round(performance.now()-started),warm:Boolean(session?.readyAt)};
+}
 self.onmessage=async({data})=>{
+ if(data.type==='prepare'){
+  if(busy)return;
+  preparationTask ||= prepareRuntime(data).then(()=>postMessage({type:'prepared'})).catch(error=>{
+   postMessage({type:'preparation-error',message:String(error.message||error)});
+   throw error;
+  });
+  preparationTask.catch(()=>{});
+  return;
+ }
  if(busy)return;busy=true;
- const started=performance.now(),reused=Boolean(ready);let booted,running;
+ const started=performance.now(),reused=Boolean(ready),preparedOnClick=Boolean(session?.readyAt)&&(!Number.isFinite(data.requestedAt)||performance.timeOrigin+session.readyAt<=data.requestedAt);let booted,running;
  try{
+  if(preparationTask){if(lastLoading)postMessage(lastLoading);await preparationTask.catch(()=>{})}
   ready ||= setup().catch(error=>{ready=null;throw error});
   const {module,entries,helpers,assetSource}=await ready;
   if(data.mode!=='fresh'&&!supportsWarmSession()){fastUnavailable=true;fastReason='Fast reruns are unavailable in this browser.'}
   if(data.mode==='fresh'&&session){await session.close();session=null}
   if(data.mode!=='fresh'&&supportsWarmSession()&&!fastUnavailable){
-   session ||= new WarmSession({module,files:()=>filesystem(entries,helpers,'',{preload:[...new Set((Array.isArray(data.preload)?data.preload:['course']).filter(name=>['course','patterns','kafka_lab','live_kafka','recovery_drill'].includes(name)))],packages:{bytewax:'bytewax',confluent_kafka:'confluent-kafka'},description:{broker:'librdkafka in-memory Kafka simulator'}}),loading:phase,running:()=>postMessage({type:'running'})});
+   warmSession({module,entries,helpers},data);
    const response=await session.run(data.source,{started,preparation:performance.now()-started,assetSource:reused?'page-memory':assetSource});
-   if(!response.warm_unavailable){postMessage(response);return}
+   if(!response.warm_unavailable){if(response.runtime){response.runtime.background_ready_on_click=preparedOnClick;response.runtime.background_preparation=backgroundTiming}postMessage(response);return}
    fastUnavailable=true;fastReason=response.message;
-   phase('Fast mode is unavailable. Preparing fresh Linux…');
+   phase('Preparing a compatible Python environment…');
    await session.close();session=null;
   }
   booted=performance.now();
-  phase('Starting a fresh Linux guest…',{stage:'boot'});let terminal='',runningSent=false;
+  phase('Preparing Python…',{stage:'boot'});let terminal='',runningSent=false;
   const stdout=new ConsoleStdout(bytes=>{
    if(!bytes.length)return;terminal+=decoder.decode(bytes,{stream:true});
    if(terminal.includes('ESL_PHASE running')&&!runningSent){runningSent=true;running=performance.now();postMessage({type:'running'})}

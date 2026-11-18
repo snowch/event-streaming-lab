@@ -1,3 +1,4 @@
+import {schedulePreparation} from './runtime-preparation.mjs';
 import {lessons} from './lessons.mjs';
 const appUrl=new URL(import.meta.url);
 const lessonSource=path=>new URL(path+appUrl.search,appUrl);
@@ -18,26 +19,14 @@ const main=$('[data-lesson]');
 if(main){
  const lesson=lessons[Number(main.dataset.lesson)];
  const editor=$('#code'), runButton=$('#run'), stopButton=$('#stop');
- const modeControl=$('#run-mode'),resetRuntime=$('#reset-runtime');
- const fastSupported=typeof globalThis.WebAssembly?.Suspending==='function'&&typeof globalThis.WebAssembly?.promising==='function';
- const savedMode=read('run-mode');
- modeControl.value=fastSupported&&savedMode!=='fresh'?'warm':'fresh';
- modeControl.querySelector('[value="warm"]').disabled=!fastSupported;
+ const resetRuntime=$('#reset-runtime');
+ const mode=new URL(location.href).searchParams.get('runtime')==='fresh'?'fresh':'warm';
  const preload=[...new Set([...lesson.code.matchAll(/^(?:from|import) (course|patterns|kafka_lab|live_kafka|recovery_drill)\b/gm)].map(match=>match[1]))];
- function describeMode(){
-  $('#run-mode-summary').textContent='Run mode · '+modeControl.selectedOptions[0].textContent;
-  $('#run-mode-note').textContent=modeControl.value==='warm'?'Each run starts fresh Python with private files and sockets. Linux stays ready between runs.':fastSupported?'Each run starts a new Linux guest. Choose this mode to inspect system files.':'This browser uses a new Linux guest on each run.';
- }
- describeMode();
- modeControl.onchange=()=>{
-  if(busy)return;
-  save('run-mode',modeControl.value);discardWorker();describeMode();
-  finish('Run mode changed. Select Run in Linux to start the next run.');
- };
+ let preparationTimer;
  resetRuntime.onclick=()=>{
   if(busy)return;
-  discardWorker();finish('Linux reset. The next Run starts Linux again.');
-  runButton.focus({preventScroll:true});
+  discardWorker();finish('Environment cleared. Select Run when ready.');
+  $('#run').focus({preventScroll:true});
  };
  const publishedCode=editor.defaultValue;
  const prepared=$('.prepared-state');
@@ -119,13 +108,13 @@ if(main){
  $('#recover-draft').onclick=()=>{
   if(recoverableDraft===null)return;
   replaceDraft(recoverableDraft);
-  $('#status').textContent='Draft recovered. Select Run in Linux to run it.';
+  $('#status').textContent='Draft recovered. Select Run to run it.';
  };
 
  function state(active,message){
   const focused=document.activeElement;
   busy=active;
-  modeControl.disabled=active;resetRuntime.disabled=active;resetRuntime.hidden=!worker||modeControl.value==='fresh';
+  resetRuntime.disabled=active;
   runButton.disabled=active;
   stopButton.hidden=!active;
   stopButton.disabled=!active;
@@ -146,6 +135,7 @@ if(main){
   state(false,message);
  }
  function discardWorker(){
+  cancelPreparation();clearTimeout(preparationTimer);main.dataset.preparation='deferred';
   runGeneration++;
   attemptSerial++;
   worker?.terminate();
@@ -169,7 +159,7 @@ if(main){
  stopButton.onclick=()=>{
   discardWorker();
   attemptWithoutResult=true;
-  finish('Stopped. The next run starts a fresh Linux guest.');
+  finish('Stopped. Select Run to start again.');
  };
  function startAttempt(source,generation,retries){
   const attempt=++attemptSerial;
@@ -182,6 +172,7 @@ if(main){
   worker.onerror=event=>{if(current())fail('runtime',event.message||'The Python worker could not load.')};
   worker.onmessage=({data})=>{
    if(!current())return;
+   if(preparationMessage(data))return;
    if(data.type==='loading'){
     $('#status').textContent=data.message;
     if(data.total>0){
@@ -217,7 +208,6 @@ if(main){
    }
    if(data.type!=='result')return;
    const elapsed=Math.round(performance.now()-runStarted);
-   if(data.runtime?.warm_fallback){modeControl.value='fresh';describeMode();resetRuntime.hidden=true}
    attemptWithoutResult=false;
    lastSuccessfulRun={lesson:lesson.slug,source,result:data.value.result,stdout:data.value.stdout,runtime:{...data.runtime,initialization_retries:retries,elapsed_ms:elapsed}};
    $('#output').textContent=(data.value.stdout?data.value.stdout+'\n':'')+JSON.stringify(data.value.result,null,2);
@@ -226,11 +216,12 @@ if(main){
    $('#export').disabled=false;
    finish(Number.isFinite(elapsed)?`Completed in ${(elapsed/1000).toFixed(1)} s including setup. Inspect your result.`:'Completed. Inspect your result.');
   };
-  try{worker.postMessage({source,mode:modeControl.value,preload})}
+  try{worker.postMessage({source,mode,preload,requestedAt:performance.timeOrigin+runStarted})}
   catch(error){fail('runtime',error.message)}
  }
  runButton.onclick=()=>{
   if(busy)return;
+  cancelPreparation();clearTimeout(preparationTimer);
   $('#attempt-error').hidden=true;
   $('#error-details').open=false;
   runStarted=performance.now();
@@ -253,6 +244,44 @@ if(main){
  const draw=()=>{const row=result.trace[position];label.textContent=`${position+1} / ${result.trace.length}`;prev.disabled=!position;next.disabled=position===result.trace.length-1;view.replaceChildren();const oldLine=panel.querySelector('.watermark-line');oldLine?.remove();if(Number.isFinite(row.watermark)){const line=document.createElement('div');line.className='watermark-line';const marker=document.createElement('span');marker.className='watermark-marker';const upper=Math.max(30,row.maximum||0),lower=Math.min(-10,row.watermark);marker.style.left=((row.watermark-lower)/(upper-lower)*100)+'%';const symbol=document.createElement('b');symbol.textContent='|';marker.append(symbol,document.createTextNode('watermark '+row.watermark+'s'));line.append(marker);line.setAttribute('aria-label','Watermark at '+row.watermark+' seconds on a '+lower+' to '+upper+' second scale');panel.insertBefore(line,view)}for(const [key,value]of Object.entries(row)){const block=document.createElement('div'),caption=document.createElement('span'),text=document.createElement('strong');caption.textContent=key;text.textContent=typeof value==='object'?JSON.stringify(value):String(value);block.append(caption,text);view.append(block)}};
  prev.onclick=()=>{position--;draw()};next.onclick=()=>{position++;draw()};draw();
  }
+ function preparationMessage(data){
+  if(data.type==='prepared'){
+   clearTimeout(preparationTimer);main.dataset.preparation='ready';
+   if(!busy)$('#status').textContent='Ready';
+   return true;
+  }
+  if(data.type==='preparation-error'){
+   clearTimeout(preparationTimer);
+   if(!busy){discardWorker();$('#status').textContent='Python will prepare when you select Run.'}
+   return true;
+  }
+  return false;
+ }
+ function prepareInBackground(){
+  if(busy||worker||mode==='fresh')return;
+  try{
+   const instance=worker=new Worker(lessonSource('./worker.js'),{type:'module'});
+   main.dataset.preparation='loading';
+   $('#status').textContent='Preparing Python in the background…';
+   const failed=()=>{
+    if(worker!==instance||busy)return;
+    discardWorker();$('#status').textContent='Python will prepare when you select Run.';
+   };
+   preparationTimer=setTimeout(failed,300000);
+   instance.onerror=failed;
+   instance.onmessage=({data})=>{
+    if(worker!==instance||busy)return;
+    if(preparationMessage(data))return;
+    if(data.type==='loading'&&data.stage==='boot'){
+     clearTimeout(preparationTimer);preparationTimer=setTimeout(failed,60000);
+    }
+   };
+   instance.postMessage({type:'prepare',preload});
+  }catch{
+   worker?.terminate();worker=null;main.dataset.preparation='deferred';
+  }
+ }
+ const cancelPreparation=schedulePreparation(prepareInBackground);
  addEventListener('pagehide',()=>{
   discardWorker();
   if(busy){attemptWithoutResult=true;finish('Leaving the page interrupted the run. Run again to start Linux.');}

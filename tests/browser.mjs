@@ -34,11 +34,15 @@ try{
  browser=await chromium.launch({executablePath:process.env.CI ? undefined : process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
  const context=await browser.newContext({viewport:{width:1440,height:1000}});const page=await context.newPage();
  page.setDefaultTimeout(240000);
+ await context.addInitScript(()=>{
+  Object.defineProperty(navigator,'connection',{configurable:true,value:{saveData:!new URL(location.href).searchParams.has('prepare')}});
+  Object.defineProperty(navigator,'deviceMemory',{configurable:true,value:8});
+ });
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const requestedSources=[];
  context.on('request',request=>{
   const url=new URL(request.url());
-  if(/\/(app\.js|worker\.js|lessons\.mjs|catalog\.mjs|patterns\.mjs|warm-session\.mjs|wasi-poll\.mjs|runtime-cache\.mjs|python\/[^/]+\.py)$/.test(url.pathname))requestedSources.push(url);
+  if(/\/(app\.js|worker\.js|lessons\.mjs|catalog\.mjs|patterns\.mjs|runtime-preparation\.mjs|warm-session\.mjs|wasi-poll\.mjs|runtime-cache\.mjs|python\/[^/]+\.py)$/.test(url.pathname))requestedSources.push(url);
  });
  await context.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
  const base=`http://127.0.0.1:${port}/event-streaming-lab/`;
@@ -258,9 +262,19 @@ try{
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'companion overflow');
  await page.goto(base+'advanced/index.html');assert.equal(await page.locator('.reading-card').count(),chapters.length);
  await page.goto(base+'performance.html');assert.match(await page.locator('main').innerText(),/native-benchmark.py/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
- // Fast mode reuses Linux, but resets Python, files, environment and native sockets.
- await page.goto(base+'lessons/'+lessons[0].slug+'.html');
- assert.equal(await page.locator('#run-mode').inputValue(),'warm');
+ // Background setup never executes the editor, produces output or changes reading marks.
+ await page.goto(base+'lessons/'+lessons[0].slug+'.html?prepare=1');
+ const readBefore=await page.locator('#done').isChecked();
+ const unexecuted="raise AssertionError('Editor must never run during preparation')";
+ await page.locator('#code').fill(unexecuted);
+ await page.waitForFunction(()=>document.querySelector('main').dataset.preparation==='ready',undefined,{timeout:300000});
+ assert.equal(await page.locator('#code').inputValue(),unexecuted);
+ assert.equal(await page.locator('#export').isDisabled(),true);
+ assert.equal(await page.locator('#run-result').isVisible(),false);
+ assert.equal(await page.locator('#done').isChecked(),readBefore);
+ assert.equal(await page.locator('#run-mode').count(),0);
+ assert.equal(await page.locator('#reset-runtime').isVisible(),false);
+
  const isolation=`import os, socket, time
 from pathlib import Path
 import course as lesson_module
@@ -302,27 +316,28 @@ except OSError as error:
   await completedRun();
   const saved=await runtimeExport('warm-isolation-'+repeat+'.json');
   assert.equal(saved.runtime.mode,'warm');assert.equal(saved.runtime.session_run,repeat+1);
+  assert.equal(saved.runtime.background_ready_on_click,true);
+  assert.equal(saved.runtime.timing.guest_startup_ms,0,'First click uses setup completed while reading');
   assert.equal(saved.runtime.process_pid,1);assert.equal(saved.runtime.procfs,false);
   assert.ok(saved.runtime.elapsed_ms>0);
   if(repeat===1)assert.equal(saved.runtime.timing.guest_startup_ms,0,'Reruns must not boot another guest');
  }
  const beforeReset=await page.locator('#output').textContent();
+ await page.locator('.runtime-help>summary').click();
  await page.locator('#reset-runtime').click();
- assert.match(await page.locator('#status').textContent(),/Linux reset/);
+ assert.match(await page.locator('#status').textContent(),/Environment cleared/);
  assert.equal(await page.evaluate(()=>document.activeElement.id),'run');
  assert.equal(await page.locator('#output').textContent(),beforeReset);
  assert.equal(await page.locator('#code').inputValue(),isolation);
  await completedRun();
  assert.equal((await runtimeExport('after-linux-reset.json')).runtime.session_run,1);
- await page.locator('#restore').click();
+ // The full-guest runner remains a diagnostic fallback, without a learner-facing mode choice.
+ await page.goto(base+'lessons/'+lessons[0].slug+'.html?runtime=fresh');
  await page.locator('#code').fill(lessons[0].code+'\nimport os\nassert os.path.isdir("/proc/self")\n');
- await page.locator('#run-mode-summary').click();
- await page.locator('#run-mode').selectOption('fresh');
- assert.match(await page.locator('#run-mode-summary').textContent(),/Fresh Linux/);
  await completedRun();
  const fresh=await runtimeExport('explicit-fresh-linux.json');
  assert.equal(fresh.runtime.mode,'fresh');assert.equal(fresh.runtime.procfs,true);
- await page.locator('#run-mode').selectOption('warm');
+ await page.goto(base+'lessons/'+lessons[0].slug+'.html');
  // Disable JSPI in the worker only, then execute the real fresh-guest fallback.
  await page.route(/\/worker\.js\?v=/,async route=>{
   const response=await route.fetch();
@@ -331,8 +346,17 @@ except OSError as error:
  await completedRun();
  const fallback=await runtimeExport('unsupported-fast-fallback.json');
  assert.equal(fallback.runtime.mode,'fresh');assert.match(fallback.runtime.warm_fallback,/unavailable/);
- assert.equal(await page.locator('#run-mode').inputValue(),'fresh');
+ assert.equal(await page.locator('#run-mode').count(),0);
  await page.unroute(/\/worker\.js\?v=/);await page.locator('#restore').click();
+ await page.goto(base+'lessons/'+lessons[0].slug+'.html?prepare=1&race=1');
+ await page.waitForFunction(()=>document.querySelector('main').dataset.preparation==='loading');
+ await page.locator('#code').fill(lessons[0].code);
+ await completedRun();
+ const duringPreparation=await runtimeExport('clicked-during-preparation.json');
+ assert.equal(duringPreparation.runtime.session_run,1,'A click during preparation runs the program exactly once');
+ assert.equal(duringPreparation.runtime.background_ready_on_click,false);
+ assert.deepEqual(duringPreparation.result,samples[0]);
+ console.log('PASS background setup does not execute code; first click uses ready Python; clicking during setup executes once.');
  console.log('PASS warm session isolation, no reboot on rerun, reset, explicit fresh Linux and real JSPI fallback.');
  assert.deepEqual(errors,[]);console.log('PASS: all published Linux/Bytewax sources match native results; error/retry, Stop/restart, drafts, completion, themes, mobile and subpath hosting; all static design readings, saved marks and Messaging Patterns Lab companion.');
  }else console.log(`PASS Linux shard ${shardIndex+1}/${shardCount}: all assigned published sources match native results.`);

@@ -160,3 +160,9 @@ The integrated production worker/editor smoke checked warm reuse, actual output,
 The final checks cover every published source natively and in real browser Linux, existing errors/Stop/drafts/reading marks, private files/globals/environment and process cleanup, zero guest-startup on warm reruns, full reset, explicit Fresh Linux, and real execution after JSPI fallback. UI mode/reset controls sit beside the editor; runtime details are collapsed. Reading and diagrams still require no VM.
 
 The published app, lesson array, worker, warm bridge, polling shim, runtime cache and Python helpers share a content-derived build ID. This prevents a previously cached polling shim from missing queued session input after an upgrade. The large pinned Linux assets keep their existing cache keys.
+
+## Automatic preparation and one Run action — 18 November 2026
+
+Removed the learner-facing Fast reruns/Fresh Linux choice. Each executable lesson prepares its environment after rendering and idle time, then waits without executing editor code. Run uses the current source once with clean state; pressing Run during preparation joins the same initialization. Restart Python is inside Troubleshooting and retains source, completed output and reading marks. The full-guest runner remains an automatic compatibility path and a diagnostic URL override.
+
+Static reading still works without JavaScript. Design readings and home pages do not load a VM. Hidden pages wait until visible; Save Data, 2G and very low-memory devices defer speculative work. Validation covers unexecuted edited drafts during preparation, no output/reading mark changes, ready-on-first-click execution, clicks during setup, state isolation, cancellation/restart and real compatibility execution.
