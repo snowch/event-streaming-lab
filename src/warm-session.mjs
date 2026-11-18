@@ -12,22 +12,32 @@ export class WarmSession{
   this.queue=this.encoder.encode(JSON.stringify(message)+'\n');this.idle=false;
   this.wake?.();this.wake=null;
  }
+ prepare(){
+  if(this.dead)return Promise.reject(Error('The Python environment ended. Restart it and run again.'));
+  if(!this.prepared){
+   this.prepared=new Promise((resolve,reject)=>{this.resolvePrepared=resolve;this.rejectPrepared=reject});
+   this.loading('Preparing Python…',{stage:'boot'});
+   this.task=this.boot().catch(error=>this.fail(error));
+  }
+  return this.prepared;
+ }
  run(source,{started,preparation,assetSource}){
   if(this.active)throw Error('An experiment is already running');
-  if(this.dead)throw Error('The Linux session ended. Reset Linux and run again.');
+  if(this.dead)throw Error('The Python environment ended. Restart it and run again.');
   return new Promise((resolve,reject)=>{
-   this.active={id:++this.serial,started,preparation,assetSource,resolve,reject,first:!this.task,sent:performance.now()};
-   this.loading(this.task?'Starting a clean Python process…':'Starting Linux for fast reruns…',{stage:'boot'});
+   this.active={id:++this.serial,started,preparation,assetSource,resolve,reject,first:!this.readyAt,sent:performance.now()};
+   this.loading('Preparing Python…',{stage:'boot'});
    this.enqueue({kind:'run',id:this.active.id,source});
-   if(!this.task)this.task=this.boot().catch(error=>this.fail(error));
+   this.prepare().then(state=>{if(!state.available)this.active?.resolve({type:'error',origin:'runtime',warm_unavailable:true,message:state.message})}).catch(error=>this.fail(error));
   });
  }
  frame(frame){
   if(frame.kind==='ready'){
    this.inputEnabled=true;this.idle=true;
-   this.readyAt??=performance.now();return;
+   this.readyAt??=performance.now();this.resolvePrepared?.({available:true});return;
   }
   if(frame.kind==='unavailable'){
+   this.resolvePrepared?.({available:false,message:frame.message});
    this.active?.resolve({type:'error',origin:'runtime',warm_unavailable:true,message:frame.message});
    this.active=null;return;
   }
@@ -51,7 +61,7 @@ export class WarmSession{
   this.active=null;request.resolve(response);
  }
  fail(error){
-  this.dead=true;this.active?.reject(error);this.active=null;
+  this.dead=true;this.rejectPrepared?.(error);this.active?.reject(error);this.active=null;
  }
  async close(){
   this.expectedExit=true;
@@ -94,7 +104,7 @@ export class WarmSession{
   }catch(error){
    if(!(error instanceof WASIProcExit&&error.code===0)){this.fail(error);return}
   }
-  if(!this.expectedExit&&this.active)this.fail(Error('The Linux session ended before returning a result.'));
+  if(!this.expectedExit&&(this.active||!this.readyAt))this.fail(Error('The Linux session ended before returning a result.'));
   this.dead=true;
  }
 }

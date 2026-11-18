@@ -12,6 +12,7 @@ try{
  browser=await chromium.launch({executablePath:process.env.CI?undefined:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
  const base='http://127.0.0.1:5176/event-streaming-lab/';
  const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
+ await context.addInitScript(()=>Object.defineProperty(navigator,'connection',{configurable:true,value:{saveData:true}}));
  const errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(r.url()));
  await context.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.goto(base+'lessons/follow-an-event.html');await page.evaluate(()=>document.fonts.ready);
@@ -42,16 +43,12 @@ try{
   const style=getComputedStyle(document.querySelector(selector));
   return [style.color,style.backgroundColor];
  }));
- assert.match(await page.locator('.prepared-state').textContent(),/editor contains the published example.*Run in Linux/);
+ assert.match(await page.locator('.prepared-state').textContent(),/editor contains the published example.*Run/);
  assert.equal(await page.locator('.underhood').evaluate(e=>e.open),false);
  assert.equal(await page.locator('.runtime-contract').evaluate(e=>e.open),false);
- const runMode=page.locator('#run-mode-summary');
- assert.match(await runMode.textContent(),/Run mode · (Fast reruns|Fresh Linux)/);
- assert.equal(await page.locator('#run-mode').isVisible(),false);
- await runMode.focus();await page.keyboard.press('Enter');
- assert.equal(await page.locator('#run-mode').isVisible(),true);
- await page.keyboard.press('Enter');
- assert.equal(await page.locator('#run-mode').isVisible(),false);
+ assert.equal(await page.locator('#run-mode').count(),0);
+ assert.equal(await page.getByRole('button',{name:'Run',exact:true}).count(),1);
+ assert.equal(await page.locator('#reset-runtime').isVisible(),false);
  await page.setViewportSize({width:320,height:760});
  await page.locator('#back-to-editor').focus();await page.keyboard.press('Enter');
  assert.equal(await page.evaluate(()=>document.activeElement.id),'code');
@@ -108,7 +105,7 @@ try{
  }
  // Prepared runtime bytes persist across chapters, while a changed manifest
  // and denied storage both fall back to normal runtime preparation.
- const cachePage=await browser.newPage();await cachePage.goto(base);
+ const cachePage=await browser.newPage();await cachePage.addInitScript(()=>Object.defineProperty(navigator,'connection',{configurable:true,value:{saveData:true}}));await cachePage.goto(base);
  assert.equal(await cachePage.evaluate(async()=>{
   const cache=await import('./runtime-cache.mjs');
   return cache.writePreparedRuntime('interface-probe',new Uint8Array([0,97,115,109,1,0,0,0]),new Uint8Array([12,34,56]));
@@ -152,5 +149,5 @@ try{
  assert.equal(await deniedPage.locator('#code').inputValue(),'# Saved before storage became unavailable');
  assert.equal(await deniedPage.locator('#done').isChecked(),false);
  await deniedContext.close();
- console.log('PASS GPU-style interface: centered chapters, self-hosted type, keyboard/outside/Escape navigation, themes, all 51 static phone layouts, inspectable source and no VM before activation.');
+ console.log('PASS GPU-style interface: centered chapters, self-hosted type, keyboard/outside/Escape navigation, themes, all 51 static phone layouts, inspectable source and static reading and Save Data defer runtime preparation.');
 }finally{await browser?.close();server.kill()}
