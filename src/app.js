@@ -25,23 +25,34 @@ if(main){
  modeControl.querySelector('[value="warm"]').disabled=!fastSupported;
  const preload=[...new Set([...lesson.code.matchAll(/^(?:from|import) (course|patterns|kafka_lab|live_kafka|recovery_drill)\b/gm)].map(match=>match[1]))];
  function describeMode(){
-  $('#run-mode-note').textContent=modeControl.value==='warm'?'Fresh Python, files and sockets on each run. Linux stays ready; Reset Linux restarts it.':fastSupported?'A new Linux guest on every run. Use this for system inspection or a fully fresh environment.':'Fast reruns are unavailable in this browser. Each Run starts fresh Linux.';
+  $('#run-mode-summary').textContent='Run mode · '+modeControl.selectedOptions[0].textContent;
+  $('#run-mode-note').textContent=modeControl.value==='warm'?'Each run starts fresh Python with private files and sockets. Linux stays ready between runs.':fastSupported?'Each run starts a new Linux guest. Choose this mode to inspect system files.':'This browser uses a new Linux guest on each run.';
  }
  describeMode();
  modeControl.onchange=()=>{
   if(busy)return;
   save('run-mode',modeControl.value);discardWorker();describeMode();
-  finish('Run mode changed. Run when ready.');
+  finish('Run mode changed. Select Run in Linux to start the next run.');
  };
  resetRuntime.onclick=()=>{
   if(busy)return;
   discardWorker();finish('Linux reset. The next Run starts Linux again.');
+  runButton.focus({preventScroll:true});
  };
  const publishedCode=editor.defaultValue;
+ const prepared=$('.prepared-state');
+ function describeEditor(){
+  prepared.hidden=editor.value!==publishedCode;
+ }
+ $('#back-to-editor').onclick=event=>{
+  event.preventDefault();
+  editor.focus({preventScroll:true});
+  editor.scrollIntoView({block:'center'});
+ };
  const progressBar=$('#runtime-progress');
  const draftKey='draft:'+lesson.slug, runtimeKey='draft-runtime:'+lesson.slug;
  const legacyKey='legacy-draft:'+lesson.slug, backupKey='restore-backup:'+lesson.slug;
- let worker,timer,lastSuccessfulRun,busy=false,runGeneration=0,attemptSerial=0,runStarted=0;
+ let worker,timer,lastSuccessfulRun,attemptWithoutResult=false,busy=false,runGeneration=0,attemptSerial=0,runStarted=0;
 
  function draftStatus(message=''){
   $('#draft-status').textContent=message;
@@ -79,6 +90,7 @@ if(main){
   if(savedBackup)persistDraft();
   else draftStatus('The replaced draft is available in this tab. Use Recover draft and download it to keep a copy.');
   $('#saved-draft-notice').hidden=true;
+  describeEditor();
   updateRecovery();
   describeResult();
   editor.focus();
@@ -86,6 +98,7 @@ if(main){
   editor.scrollTop=0;
   editor.scrollLeft=0;
  }
+ describeEditor();
  $('#saved-draft-notice').hidden=editor.value===publishedCode;
  updateRecovery();
  $('#done').checked=read('done:'+lesson.slug)==='true';
@@ -94,9 +107,11 @@ if(main){
   if(!lastSuccessfulRun)return;
   $('#execution-note').textContent=busy?'A new run is in progress. This result is from the last successful run.':
    editor.value!==lastSuccessfulRun.source?'Code changed. This result and its export use the last successful run.':
-   'This result and its export use the last successful run.';
+   attemptWithoutResult?'The latest attempt did not produce a result. This is the last successful run.':
+   lastSuccessfulRun.source===publishedCode?'Result from the published example.':
+   'Result from your edited code.';
  }
- editor.oninput=()=>{persistDraft();updateRecovery();describeResult()};
+ editor.oninput=()=>{persistDraft();describeEditor();$('#saved-draft-notice').hidden=true;updateRecovery();describeResult()};
  $('#restore').onclick=()=>{
   replaceDraft(publishedCode);
   $('#status').textContent=$('#recover-draft').hidden?'Published code is ready.':'Published code is ready. Select Recover draft to get your code back.';
@@ -139,6 +154,7 @@ if(main){
  function fail(origin,message,stdout=''){
   const pythonError=origin==='python';
   if(!pythonError)discardWorker();
+  attemptWithoutResult=true;
   finish(pythonError?'Python reported an error. Check the message, then edit and rerun.':
    'The runtime failed. Check the message, then run again.');
   const error=message.trim();
@@ -152,6 +168,7 @@ if(main){
  }
  stopButton.onclick=()=>{
   discardWorker();
+  attemptWithoutResult=true;
   finish('Stopped. The next run starts a fresh Linux guest.');
  };
  function startAttempt(source,generation,retries){
@@ -201,12 +218,13 @@ if(main){
    if(data.type!=='result')return;
    const elapsed=Math.round(performance.now()-runStarted);
    if(data.runtime?.warm_fallback){modeControl.value='fresh';describeMode();resetRuntime.hidden=true}
+   attemptWithoutResult=false;
    lastSuccessfulRun={lesson:lesson.slug,source,result:data.value.result,stdout:data.value.stdout,runtime:{...data.runtime,initialization_retries:retries,elapsed_ms:elapsed}};
    $('#output').textContent=(data.value.stdout?data.value.stdout+'\n':'')+JSON.stringify(data.value.result,null,2);
    visualize(data.value.result);
    $('#run-result').hidden=false;
    $('#export').disabled=false;
-   finish(Number.isFinite(elapsed)?`Completed in ${(elapsed/1000).toFixed(1)} s. Inspect your result.`:'Completed. Inspect your result.');
+   finish(Number.isFinite(elapsed)?`Completed in ${(elapsed/1000).toFixed(1)} s including setup. Inspect your result.`:'Completed. Inspect your result.');
   };
   try{worker.postMessage({source,mode:modeControl.value,preload})}
   catch(error){fail('runtime',error.message)}
@@ -231,13 +249,13 @@ if(main){
  $('#export').onclick=()=>{if(lastSuccessfulRun)download(JSON.stringify(lastSuccessfulRun,null,2),lesson.slug+'-run.json','application/json')};
  function visualize(result){
  const panel=$('#visual');panel.replaceChildren();if(!result?.trace?.length)return;
- let position=0;const head=document.createElement('div');head.className='trace-head';const title=document.createElement('h3');title.textContent='Follow the evidence';const controls=document.createElement('div');const prev=document.createElement('button'),next=document.createElement('button'),label=document.createElement('span');prev.textContent='←';prev.setAttribute('aria-label','Previous trace step');next.textContent='→';next.setAttribute('aria-label','Next trace step');controls.append(prev,label,next);head.append(title,controls);panel.append(head);const view=document.createElement('div');view.className='trace-view';panel.append(view);
+ let position=0;const head=document.createElement('div');head.className='trace-head';const title=document.createElement('h3');title.textContent='Step through the trace';const controls=document.createElement('div');const prev=document.createElement('button'),next=document.createElement('button'),label=document.createElement('span');prev.textContent='←';prev.setAttribute('aria-label','Previous trace step');next.textContent='→';next.setAttribute('aria-label','Next trace step');controls.append(prev,label,next);head.append(title,controls);panel.append(head);const view=document.createElement('div');view.className='trace-view';panel.append(view);
  const draw=()=>{const row=result.trace[position];label.textContent=`${position+1} / ${result.trace.length}`;prev.disabled=!position;next.disabled=position===result.trace.length-1;view.replaceChildren();const oldLine=panel.querySelector('.watermark-line');oldLine?.remove();if(Number.isFinite(row.watermark)){const line=document.createElement('div');line.className='watermark-line';const marker=document.createElement('span');marker.className='watermark-marker';const upper=Math.max(30,row.maximum||0),lower=Math.min(-10,row.watermark);marker.style.left=((row.watermark-lower)/(upper-lower)*100)+'%';const symbol=document.createElement('b');symbol.textContent='|';marker.append(symbol,document.createTextNode('watermark '+row.watermark+'s'));line.append(marker);line.setAttribute('aria-label','Watermark at '+row.watermark+' seconds on a '+lower+' to '+upper+' second scale');panel.insertBefore(line,view)}for(const [key,value]of Object.entries(row)){const block=document.createElement('div'),caption=document.createElement('span'),text=document.createElement('strong');caption.textContent=key;text.textContent=typeof value==='object'?JSON.stringify(value):String(value);block.append(caption,text);view.append(block)}};
  prev.onclick=()=>{position--;draw()};next.onclick=()=>{position++;draw()};draw();
  }
  addEventListener('pagehide',()=>{
   discardWorker();
-  if(busy)finish('The run was interrupted when you left this page. Run again to start a fresh guest.');
+  if(busy){attemptWithoutResult=true;finish('Leaving the page interrupted the run. Run again to start Linux.');}
  });
 }
 

@@ -1,0 +1,451 @@
+{
+  "follow-an-event": [
+    {
+      "replace": [
+        [
+          "order['amount'] >= 9",
+          "order['amount'] >= 7"
+        ]
+      ],
+      "evidence": "IDs a, b, d and e in input order"
+    }
+  ],
+  "evolve-an-event-schema": [
+    {
+      "replace": [
+        [
+          "{'id':'b', 'version':2, 'amount':850}",
+          "{'id':'b', 'version':1, 'amount':850}"
+        ]
+      ],
+      "evidence": "b changes from 850 to 85000 pence"
+    }
+  ],
+  "read-a-partitioned-log": [
+    {
+      "replace": [
+        [
+          "result = partition_log()",
+          "result = partition_log()[\"0\"]"
+        ]
+      ],
+      "evidence": "partition 0 retains a, c, d at offsets 0, 1, 2"
+    }
+  ],
+  "stream-live-through-kafka": [
+    {
+      "replace": [
+        [
+          "[12, 8, 5, 7, 9]",
+          "[12, 8, 5, 70, 9]"
+        ]
+      ],
+      "evidence": "North ends at £87; offsets are still 0 through 4"
+    }
+  ],
+  "retain-or-compact-a-log": [
+    {
+      "replace": [
+        [
+          "compact=True",
+          "compact=False"
+        ]
+      ],
+      "evidence": "a has offsets 2 and 5 in the retained history"
+    },
+    {
+      "replace": [
+        [
+          "start=2",
+          "start=0"
+        ]
+      ],
+      "evidence": "all six records, including a at 0, 2 and 5"
+    }
+  ],
+  "give-consumers-their-own-position": [
+    {
+      "replace": [
+        [
+          "committed=1",
+          "committed=0"
+        ]
+      ],
+      "evidence": "sales and audit read the same five records"
+    },
+    {
+      "replace": [
+        [
+          "committed=0",
+          "committed=2"
+        ]
+      ],
+      "evidence": "sales sees only d; audit still sees all five"
+    }
+  ],
+  "route-and-quarantine": [
+    {
+      "replace": [
+        [
+          "route_events()",
+          "route_events(extra='{\"id\":\"z\",\"amount\":true}')"
+        ]
+      ],
+      "evidence": "fifth payload is quarantined for invalid amount"
+    },
+    {
+      "replace": [
+        [
+          "route_events(extra='{\"id\":\"z\",\"amount\":true}')",
+          "route_events(extra='{\"id\":\"z\",\"amount\":0}')"
+        ]
+      ],
+      "evidence": "z is accepted and all five inputs are accounted for"
+    }
+  ],
+  "expand-and-rekey": [
+    {
+      "replace": [
+        [
+          "copies=1",
+          "copies=2"
+        ]
+      ],
+      "evidence": "4 carts become 8 lines across the same 3 product codes"
+    }
+  ],
+  "choose-the-right-clock": [
+    {
+      "replace": [
+        [
+          "\"c\": 13",
+          "\"c\": 9"
+        ]
+      ],
+      "evidence": "processing window moves from 1 to 0 while event window remains 0"
+    }
+  ],
+  "close-a-window": [
+    {
+      "replace": [
+        [
+          "slide=10",
+          "slide=5"
+        ]
+      ],
+      "evidence": "five overlapping rows; a appears in windows starting −5 and 0"
+    }
+  ],
+  "merge-a-session": [
+    {
+      "replace": [
+        [
+          "gap=5",
+          "gap=3"
+        ]
+      ],
+      "evidence": "four sessions instead of two"
+    },
+    {
+      "replace": [
+        [
+          "gap=3",
+          "gap=8"
+        ]
+      ],
+      "evidence": "0, 4 and 8 still share a session; 20 is separate"
+    }
+  ],
+  "wait-for-late-events": [
+    {
+      "replace": [
+        [
+          "wait=5",
+          "wait=30"
+        ]
+      ],
+      "evidence": "d leaves late output and the first total moves from 17 to 24"
+    }
+  ],
+  "correct-a-late-result": [
+    {
+      "replace": [
+        [
+          "lateness=5",
+          "lateness=0"
+        ]
+      ],
+      "evidence": "only first total 10, b and c are late"
+    },
+    {
+      "replace": [
+        [
+          "lateness=0",
+          "lateness=10"
+        ]
+      ],
+      "evidence": "three revisions through total 22, no late IDs"
+    }
+  ],
+  "keep-state-by-key": [
+    {
+      "replace": [
+        [
+          "lambda order: order['shop']",
+          "lambda order: 'all'"
+        ]
+      ],
+      "evidence": "one sequence of totals 12, 20, 25, 32, 41"
+    }
+  ],
+  "build-a-materialized-view": [
+    {
+      "replace": [
+        [
+          "reject_stale=True",
+          "reject_stale=False"
+        ]
+      ],
+      "evidence": "A reappears with value 11; no ignored rows or remaining tombstones"
+    }
+  ],
+  "enrich-a-stream": [
+    {
+      "replace": [
+        [
+          "regions = {'North': 'Yorkshire'}",
+          "regions = {'North': 'Yorkshire', 'South': 'London'}"
+        ]
+      ],
+      "evidence": "both South rows are labelled London"
+    },
+    {
+      "replace": [
+        [
+          "regions.get(order['shop'], 'unknown')",
+          "regions[order['shop']]"
+        ]
+      ],
+      "evidence": "South raises KeyError; last successful result remains visible",
+      "error": "KeyError",
+      "restore": true
+    }
+  ],
+  "join-changing-streams": [
+    {
+      "replace": [
+        [
+          "insert_mode='last'",
+          "insert_mode='product'"
+        ]
+      ],
+      "evidence": "the two orders and two regions produce four pairs"
+    },
+    {
+      "replace": [
+        [
+          "insert_mode='product'",
+          "insert_mode='first'"
+        ]
+      ],
+      "evidence": "o1 and West instead of o2 and East"
+    }
+  ],
+  "count-the-join-output": [
+    {
+      "replace": [
+        [
+          "horizon=10",
+          "horizon=20"
+        ]
+      ],
+      "evidence": "p3 matches y and six comparisons remain"
+    },
+    {
+      "replace": [
+        [
+          "\n]",
+          "\n    {\"id\": \"x\", \"time\": 10, \"receipt\": \"p4\"},\n]"
+        ]
+      ],
+      "evidence": "p4 also matches x: four pairs emitted, eight checked"
+    }
+  ],
+  "look-up-the-past": [
+    {
+      "replace": [
+        [
+          "history=True",
+          "history=False"
+        ]
+      ],
+      "evidence": "all three regions become East instead of West, East, West"
+    }
+  ],
+  "detect-event-sequences": [
+    {
+      "replace": [
+        [
+          "horizon=10",
+          "horizon=2"
+        ]
+      ],
+      "evidence": "the two d1 alerts disappear"
+    }
+  ],
+  "replay-without-double-counting": [
+    {
+      "replace": [
+        [
+          "lambda order: order['id']",
+          "lambda order: order['shop']"
+        ]
+      ],
+      "evidence": "two shop keys yield £20 instead of £41"
+    }
+  ],
+  "forget-state-deliberately": [
+    {
+      "replace": [
+        [
+          "expire=True",
+          "expire=False"
+        ]
+      ],
+      "evidence": "accepted 1 and duplicates 2; last delivery still finds state"
+    }
+  ],
+  "recover-after-a-failure": [
+    {
+      "replace": [
+        [
+          "checkpoint=True",
+          "checkpoint=False"
+        ]
+      ],
+      "evidence": "three inputs replay and output history repeats a prefix before ending at 36"
+    }
+  ],
+  "retry-with-a-budget": [
+    {
+      "replace": [
+        [
+          "max_attempts=3",
+          "max_attempts=2"
+        ]
+      ],
+      "evidence": "success falls to only a; attempts fall from eight to six"
+    }
+  ],
+  "measure-operation-effort": [
+    {
+      "replace": [
+        [
+          "n=8, keys=2",
+          "n=16, keys=2"
+        ]
+      ],
+      "evidence": "two retained keys, 22 linear comparisons"
+    },
+    {
+      "replace": [
+        [
+          "n=16, keys=2",
+          "n=16, keys=16"
+        ]
+      ],
+      "evidence": "16 retained keys and 120 linear comparisons"
+    }
+  ],
+  "measure-latency-and-batching": [
+    {
+      "replace": [
+        [
+          "batch=1",
+          "batch=2"
+        ]
+      ],
+      "evidence": "batch 2 finishes the fixture sooner while the first record takes longer"
+    },
+    {
+      "replace": [
+        [
+          "batch=2",
+          "batch=4"
+        ]
+      ],
+      "evidence": "first record completes at 24 instead of 5 ms and p99 increases"
+    }
+  ],
+  "when-the-consumer-falls-behind": [
+    {
+      "replace": [
+        [
+          "capacity=3",
+          "capacity=6"
+        ]
+      ],
+      "evidence": "larger buffer avoids loss in this short fixture but backlog grows through tick 5"
+    },
+    {
+      "replace": [
+        [
+          "service=1",
+          "service=2"
+        ]
+      ],
+      "evidence": "service matches the offered rate; no backlog or drops"
+    }
+  ],
+  "budget-for-recovery": [
+    {
+      "replace": [
+        [
+          "service=100",
+          "service=80"
+        ]
+      ],
+      "evidence": "spare rate is 0 and catch_up_seconds is null"
+    },
+    {
+      "replace": [
+        [
+          "service=80",
+          "service=120"
+        ]
+      ],
+      "evidence": "spare rate is 40 and catch-up takes 10 seconds"
+    }
+  ],
+  "run-a-bounded-backfill": [
+    {
+      "replace": [
+        [
+          "stop=4",
+          "stop=3"
+        ]
+      ],
+      "evidence": "offsets 1 and 2, view b and c, four write attempts, two visible rows"
+    }
+  ],
+  "resolve-the-streaming-incident": [
+    {
+      "replace": [
+        [
+          "deduplicate=True",
+          "deduplicate=False"
+        ]
+      ],
+      "evidence": "duplicate a now increases total and final sink total is 25"
+    },
+    {
+      "replace": [
+        [
+          "deduplicate=False, allowed_lateness=5",
+          "deduplicate=True, allowed_lateness=0"
+        ]
+      ],
+      "evidence": "b joins c as late and final sink total falls to 10"
+    }
+  ]
+}

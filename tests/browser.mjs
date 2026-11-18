@@ -9,6 +9,9 @@ const samples=JSON.parse(execFileSync('python3',['tests/test_course.py','--json'
 const shardCount=Number(process.env.ESL_BROWSER_SHARDS||1),shardIndex=Number(process.env.ESL_BROWSER_SHARD||0);
 assert.ok(Number.isInteger(shardCount)&&shardCount>=1&&shardCount<=lessons.length);
 assert.ok(Number.isInteger(shardIndex)&&shardIndex>=0&&shardIndex<shardCount);
+const lessonEdits=JSON.parse(await fs.readFile('tests/lesson-edits.json','utf8'));
+const assigned=lessons.filter((_,i)=>i%shardCount===shardIndex);
+const editedSamples=JSON.parse(execFileSync('python3',['tests/test_course.py','--edits-json',...assigned.map(l=>l.slug)],{encoding:'utf8'}));
 const port=5174+shardIndex*10;
 const resultDir=shardCount===1?'test-results':`test-results/shard-${shardIndex}`;
 const artifact=name=>resultDir+'/'+name;
@@ -108,7 +111,7 @@ try{
    console.log('PASS startup watchdog: Stop cancels; boot retries are bounded; fresh actual Linux execution matches native.');
   }
   if(lessons[i].slug==='choose-the-right-clock'){
-   assert.match(await page.locator('.change').textContent(),/from 13 to 9/);
+   assert.match(await page.locator('.change').textContent(),/"c": 13.*"c": 9/);
    const source=await page.locator('#code').inputValue();
    const edited=source.replace('"c": 13','"c": 9');
    await page.locator('#code').fill(edited);
@@ -148,6 +151,42 @@ try{
    assert.equal(added.matches.length,4);
    assert.equal(added.comparisons,8);
    console.log('PASS widening the interval join and adding a receipt in the browser editor.');
+  }
+  const {slug,code}=lessons[i];
+  // The earlier clock and join tests leave edits open. Resume the documented sequence from the starter source.
+  if(await page.locator('#code').inputValue()!==code)await page.locator('#restore').click();
+  const incident=slug==='resolve-the-streaming-incident';
+  if(incident){
+   const baseline=await exportResult(page,'incident-published.json');
+   assert.equal(baseline.source,code);
+   assert.deepEqual(baseline.result,samples[i]);
+  }
+  for(const [index,edit] of lessonEdits[slug].entries()){
+   if(edit.restore)await page.locator('#restore').click();
+   else await page.locator('#back-to-editor').click();
+   assert.equal(await page.evaluate(()=>document.activeElement.id),'code');
+   let edited=await page.locator('#code').inputValue();
+   for(const [old,replacement] of edit.replace)edited=edited.replace(old,replacement);
+   const previous=await page.locator('#output').textContent();
+   await page.locator('#code').fill(edited);
+   await page.locator('#code').press('Control+Enter');
+   await page.waitForFunction(()=>!document.querySelector('#run').disabled);
+   const expected=editedSamples[slug][index];
+   if(expected.error){
+    assert.equal(await page.locator('#attempt-error').isVisible(),true);
+    assert.ok((await page.locator('#error-trace').textContent()).includes(expected.error),edit.evidence);
+    assert.equal(await page.locator('#output').textContent(),previous);
+   }else{
+    assert.equal(await page.locator('#attempt-error').isVisible(),false);
+    assert.match(await page.locator('#execution-note').textContent(),/Result from your edited code/);
+    assert.deepEqual(JSON.parse(await page.locator('#output').textContent()),expected.result,edit.evidence);
+    if(incident){
+     const exported=await exportResult(page,'incident-edit-'+(index+1)+'.json');
+     assert.equal(exported.source,edited);
+     assert.deepEqual(exported.result,expected.result);
+    }
+   }
+   console.log('PASS documented edit:',slug,index+1,edit.evidence);
   }
   console.log('PASS Linux lesson:',lessons[i].slug);
   if(lessons[i].slug==='wait-for-late-events'){await page.locator('#visual').scrollIntoViewIfNeeded();await page.screenshot({path:artifact('bytewax-windows-desktop.png')});await page.getByRole('button',{name:'Next trace step',exact:true}).click();}
@@ -200,7 +239,8 @@ try{
  for(const c of chapters){
   const r=await reading.goto(base+'advanced/'+c.slug+'.html');assert.equal(r.status(),200);
   assert.equal(await reading.locator('h1').textContent(),c.title);
-  assert.equal(await reading.locator('.topology-nodes>div').count(),4);
+  assert.equal(await reading.getByRole('heading',{name:'Worked case',exact:true}).isVisible(),true);
+  assert.equal(await reading.locator('.worked-trace .note').textContent(),c.traceNote);
   assert.ok(await reading.locator('tbody tr').count()>=3);
   assert.ok((await reading.locator('main').innerText()).length>3000);
  }
@@ -269,13 +309,16 @@ except OSError as error:
  const beforeReset=await page.locator('#output').textContent();
  await page.locator('#reset-runtime').click();
  assert.match(await page.locator('#status').textContent(),/Linux reset/);
+ assert.equal(await page.evaluate(()=>document.activeElement.id),'run');
  assert.equal(await page.locator('#output').textContent(),beforeReset);
  assert.equal(await page.locator('#code').inputValue(),isolation);
  await completedRun();
  assert.equal((await runtimeExport('after-linux-reset.json')).runtime.session_run,1);
  await page.locator('#restore').click();
  await page.locator('#code').fill(lessons[0].code+'\nimport os\nassert os.path.isdir("/proc/self")\n');
+ await page.locator('#run-mode-summary').click();
  await page.locator('#run-mode').selectOption('fresh');
+ assert.match(await page.locator('#run-mode-summary').textContent(),/Fresh Linux/);
  await completedRun();
  const fresh=await runtimeExport('explicit-fresh-linux.json');
  assert.equal(fresh.runtime.mode,'fresh');assert.equal(fresh.runtime.procfs,true);
@@ -291,7 +334,7 @@ except OSError as error:
  assert.equal(await page.locator('#run-mode').inputValue(),'fresh');
  await page.unroute(/\/worker\.js\?v=/);await page.locator('#restore').click();
  console.log('PASS warm session isolation, no reboot on rerun, reset, explicit fresh Linux and real JSPI fallback.');
- assert.deepEqual(errors,[]);console.log('PASS: all published Linux/Bytewax sources match native results; error/retry, Stop/restart, drafts, completion, themes, mobile and subpath hosting; all static design readings, saved marks and ZeroMQ proposal.');
+ assert.deepEqual(errors,[]);console.log('PASS: all published Linux/Bytewax sources match native results; error/retry, Stop/restart, drafts, completion, themes, mobile and subpath hosting; all static design readings, saved marks and Messaging Patterns Lab companion.');
  }else console.log(`PASS Linux shard ${shardIndex+1}/${shardCount}: all assigned published sources match native results.`);
  const revision=requestedSources.find(url=>url.pathname.endsWith('/app.js'))?.searchParams.get('v');
  assert.ok(revision,'The page identifies its build');

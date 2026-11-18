@@ -12,7 +12,7 @@ The Linux/Wasm architecture was validated using JSLinux. The course ships an ope
 
 The pattern sequence adds routing/quarantine, fan-out, materialized views, state deletion, sequence detection, bounded retries, backfills and a real changing-stream join. Design readings cover stream/table duality, CDC/outbox/inbox, absence detection, production releases, governance and pattern composition.
 
-Each investigation accounts for work, state, movement, progress and recovery. Exact editor examples generate the static worked results and are compared with real browser execution. Reading and worked examples need no VM or JavaScript. Every Run gets a fresh guest; files, simulator records and checkpoints are temporary. Drafts, explicit reading marks and themes retain their existing `esl:` keys. Previous drafts are preserved separately and offered as source downloads after migration.
+Each investigation accounts for work, state, movement, progress and recovery. Exact editor examples generate the static worked results and are compared with real browser execution. Reading and worked examples need no VM or JavaScript. Every run starts a fresh isolated Python process with private files and sockets. Fast reruns can reuse Linux, while Fresh Linux starts a new guest. Simulator records and checkpoints are private to each run. Drafts, explicit reading marks and themes retain their existing `esl:` keys. Previous drafts are preserved separately and offered as source downloads after migration.
 
 ## Develop
 
@@ -69,6 +69,6 @@ Copyright © 2026 Christopher Snow. Original code: Apache-2.0. Original prose: C
 
 ### Faster reruns
 
-On browsers with WebAssembly JavaScript Promise Integration (JSPI), **Fast reruns** keep Linux and trusted Python helpers ready in the current lesson. Every Run gets a new process, private scratch files and new Linux namespaces; Python variables, sockets and writes do not carry over. **Reset Linux** restarts the entire guest. **Fresh Linux** retains the original fresh-guest execution path and is used when JSPI is unavailable. The first Run on a page still starts Linux; only asset bytes, not a running guest, are cached across chapters.
+On browsers with WebAssembly JavaScript Promise Integration (JSPI), **Fast reruns** keep Linux and trusted Python helpers ready in the current lesson. Every Run gets a new process, private scratch files and new Linux namespaces; Python variables, sockets and writes do not carry over. **Reset Linux** discards the guest. The next run starts Linux again and the current draft and last successful result remain visible. **Fresh Linux** retains the original fresh-guest execution path and is used when JSPI is unavailable. The first Run on a page still starts Linux; only asset bytes, not a running guest, are cached across chapters.
 
 Fast mode has read-only system/runtime directories, a 32 MiB scratch filesystem and no `/proc`; use Fresh Linux for system inspection. The Linux kernel is shared within a fast session. The runtime is for these local learning experiments, not a claim of distributed durability. Run exports identify the mode and session run, guest/process startup and execution phases. `elapsed_ms` measures the complete button-to-result wait, including initialization retries. Source programs are never automatically retried after they start.

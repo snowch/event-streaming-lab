@@ -42,7 +42,10 @@ button:hover:enabled{border-color:var(--green);background:var(--soft)}
 .goal p{font-size:17px;margin:6px 0 0}
 .lesson .prediction{border:0;border-left:3px solid var(--green);padding:18px 22px;background:var(--soft);border-radius:0 8px 8px 0}
 .prediction p{font:18px/1.7 "IBM Plex Sans",system-ui,sans-serif;margin:10px 0}
-.prediction>span:last-child{font-size:13px}
+.prediction h2{margin-top:0}
+.prediction p:last-child{margin-bottom:0}
+.lesson .run-start-note{margin-bottom:0}
+#code{scroll-margin-top:5rem}
 .change{border-left:3px solid var(--green);border-radius:0 8px 8px 0;padding:18px 22px}
 .change>b{font-size:15px;color:var(--green)}
 .runtime-contract{background:var(--surface);padding:20px 22px;border-radius:8px;gap:24px}
@@ -55,7 +58,7 @@ button:hover:enabled{border-color:var(--green);background:var(--soft)}
 .cell-head{padding:15px 16px 8px;gap:12px;flex-wrap:wrap;border:0;font:600 16px/1.5 "IBM Plex Mono",monospace;letter-spacing:0}
 .cell-head button{background:var(--surface);border:1px solid var(--line);font:600 13px "IBM Plex Sans",sans-serif;min-height:36px;padding:6px 12px}
 .draft-tools{display:flex;gap:8px;flex-wrap:wrap}
-.workbench .editor-shortcut{margin:0;padding:0 16px 8px;font-size:13px;color:var(--muted)}
+.workbench .editor-shortcut{margin:0;padding:6px 16px 0;font-size:13px;color:var(--muted)}
 .workbench [hidden],.workbench #status:empty{display:none}
 .code-cell textarea{width:calc(100% - 32px);margin:12px 16px;min-height:230px;height:360px;border:1px solid var(--line);border-radius:6px;background:#10221d;padding:14px 12px;font:15px/1.6 "IBM Plex Mono",monospace;caret-color:#a3ddc2;color:var(--codeink)}
 .cell-tools{border:0;padding:0 16px 14px;gap:8px}
@@ -190,7 +193,7 @@ footer p,footer span{font-size:12px}
  .about{margin:40px auto;padding:0 20px}
  .runtime-contract{padding:18px;gap:14px}
  .runtime-contract>div+div{border-top:1px solid var(--line);padding-top:14px}
- .code-cell textarea{font-size:14px}
+ .code-cell textarea{font-size:14px;height:290px}
  .pagination{grid-template-columns:minmax(0,1fr);gap:12px}
  .pagination>a{min-height:100px;padding:18px 20px}
  footer{padding:26px 20px 40px;gap:14px}
@@ -315,11 +318,12 @@ footer p,footer span{font-size:12px}
 @media(max-width:520px){.course-home{padding:22px 20px 0}.home-intro{margin-bottom:22px;padding-bottom:22px}.home-intro h1{font-size:34px}.home-description{font-size:16px;margin-bottom:16px}.home-actions{gap:8px 18px}.home-meta{font-size:12px;margin-top:12px}.home-meta>span{padding:0 3px}.course-home .curriculum>h2{font-size:23px;margin-bottom:18px}.course-home .part-heading h3{font-size:21px}.chapter-copy>strong{font-size:16px}.chapter-copy>span{font-size:13px}.course-home .chapter-link{gap:10px}.chapter-kind{font-size:10px;padding:2px 5px}}
 
 /* Runtime choices remain beside the editor; details stay collapsed. */
-.workbench .runtime-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px}
+.lesson .workbench .runtime-options{margin:0;padding:6px 16px 0;border:0}
+.workbench .runtime-options>summary{font-size:13px;color:var(--muted)}
+.workbench .runtime-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 0}
 .workbench .runtime-controls label{font-size:13px;color:var(--muted)}
 .workbench .runtime-controls select{max-width:100%;min-height:42px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);padding:6px 10px;font:14px "IBM Plex Sans",sans-serif}
-.workbench .runtime-controls button{background:var(--surface);border:1px solid var(--line);color:var(--ink);font-size:13px}
-.lesson .workbench .runtime-mode-note{padding:0 16px;margin:0 0 8px;color:var(--muted);font-size:13px;line-height:1.6;max-width:76ch}
-.lesson details.runtime-contract{display:block;background:transparent;border:0;border-top:1px solid var(--line);padding:10px 0;margin:20px 0 12px;border-radius:0}
+.lesson .workbench .runtime-mode-note{padding:0;margin:0 0 8px;color:var(--muted);font-size:13px;line-height:1.6;max-width:76ch}
+.lesson details.runtime-contract,.lesson details.underhood{display:block;background:transparent;border:0;border-top:1px solid var(--line);padding:10px 0;margin:20px 0 12px;border-radius:0}
 .lesson .runtime-contract>summary{font-size:14px;color:var(--muted)}
 .lesson .runtime-contract>p,.lesson .runtime-contract>a{font-size:14px;line-height:1.65}
