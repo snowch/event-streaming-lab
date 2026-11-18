@@ -328,11 +328,7 @@ footer p,footer span{font-size:12px}
 
 /* Optional references stay beside the lesson and work without JavaScript. */
 .lesson .chapter-references{margin:40px 0 28px;padding:0;border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;background:transparent}
-.chapter-references>summary{padding:20px 4px;color:var(--green);cursor:pointer}
-.chapter-references>summary>span{display:inline-block;vertical-align:middle;max-width:calc(100% - 24px)}
-.chapter-references>summary strong{display:block;font-size:19px}
-.reference-subtitle{display:block;color:var(--muted);font-weight:400;font-size:15px;line-height:1.5;margin-top:4px}
-.reference-body{padding:0 4px 20px}
+.reference-body{padding:0 16px 24px 56px;min-width:0}
 .chapter-reference-list{padding-left:22px;margin:0}
 .chapter-reference-list>li{padding:18px 0 22px}
 .chapter-reference-list>li+li{border-top:1px solid var(--line)}
@@ -342,9 +338,29 @@ footer p,footer span{font-size:12px}
 .reference-links code{font:inherit}
 .reference-new-tab{font-size:12px;white-space:nowrap}
 .chapter-reference-list p{font-size:16px;line-height:1.75}
-.chapter-reference-list .reference-answer{padding:0;border:0;background:transparent;margin:12px 0 0}
-.reference-answer>summary{color:var(--green);font-weight:600;font-size:15px}
 .helper-reference .helper-function{scroll-margin-top:110px;margin-top:32px}
 .helper-reference h3 code{font:inherit;overflow-wrap:anywhere}
 .helper-reference pre{max-width:100%;overflow:auto;font-size:13px;line-height:1.6}
 .helper-index{display:flex;flex-wrap:wrap;gap:8px 24px;padding-left:20px}
+
+/* GPU Lab resource rows: outlined cue, readable label, trailing open indicator. */
+.lesson details.resource-row{padding:0}
+.resource-row>summary{display:grid;grid-template-columns:26px minmax(0,1fr) 20px;align-items:center;gap:18px;min-height:72px;padding:20px 12px;list-style:none;cursor:pointer;color:var(--ink)}
+.resource-row>summary::-webkit-details-marker{display:none}
+.resource-row>summary::marker{content:''}
+.resource-row>summary::before,.resource-row>summary::after{content:none}
+.resource-icon{display:flex;align-items:center;color:var(--muted)}
+.resource-icon svg{display:block;flex:none}
+.resource-copy{min-width:0}
+.resource-copy>strong{display:block;font-size:17px;font-weight:650;line-height:1.45;color:var(--ink)}
+.resource-description{display:block;margin-top:4px;font-size:15px;font-weight:400;line-height:1.45;color:var(--muted)}
+.resource-toggle{display:block;color:var(--muted);transition:transform .15s ease}
+.resource-row[open]>summary .resource-toggle{transform:rotate(90deg)}
+.resource-row>summary:hover .resource-copy>strong{color:var(--green)}
+.resource-row>summary:focus-visible{outline:2px solid var(--green);outline-offset:-3px;border-radius:6px}
+.chapter-references>summary{min-height:88px}
+.chapter-references .resource-copy>strong{color:var(--green)}
+.workbench .resource-row>summary{min-height:56px;padding:12px 0;gap:12px}
+.workbench .resource-copy>strong{font-size:14px}
+@media(max-width:600px){.resource-row>summary{padding-inline:8px;gap:12px}.reference-body{padding:0 8px 20px}}
+@media(prefers-reduced-motion:reduce){.resource-toggle{transition:none}}

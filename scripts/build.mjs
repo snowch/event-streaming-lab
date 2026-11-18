@@ -1,3 +1,4 @@
+import {resourceSummary} from './resource-row.mjs';
 import {writeHelperReference,renderLessonReferences,renderReadingReferences} from './references.mjs';
 import {renderDiagram} from './diagrams.mjs';
 import {createHash} from 'node:crypto';
@@ -66,7 +67,7 @@ for(const [i,l]of lessons.entries()){
  const data=esc(JSON.stringify(samples[i],null,2));
  const helperName=l.code.match(/^from patterns import (\w+)/)?.[1];
  if(helperName&&!patternFunctions[helperName])throw Error('Missing published helper: '+helperName);
- const implementation=helperName?`<details class="operator-source"><summary>Inspect the operator implementation</summary><p>The editor calls this exact function. See how it connects the operators and applies the policy. Shared imports and collection helpers are in the <a href="../python/patterns.py">complete patterns module</a> and <a href="../python/course.py">course module</a>. Download Python includes both.</p><pre><code>${esc(patternFunctions[helperName])}</code></pre></details>`:'';
+ const implementation=helperName?`<details class="operator-source resource-row">${resourceSummary('Inspect the operator implementation',{icon:'code'})}<p>The editor calls this exact function. See how it connects the operators and applies the policy. Shared imports and collection helpers are in the <a href="../python/patterns.py">complete patterns module</a> and <a href="../python/course.py">course module</a>. Download Python includes both.</p><pre><code>${esc(patternFunctions[helperName])}</code></pre></details>`:'';
  const workbench=`<p class="note" id="saved-draft-notice" hidden>A saved draft is open. Select <strong>Restore code</strong> to see the published example. <strong>Recover draft</strong> brings back your draft.</p>
  <div class="workbench">
   <div class="code-cell">
@@ -87,7 +88,7 @@ for(const [i,l]of lessons.entries()){
    <h4 class="console-title" id="console-title">Console output</h4>
    <pre id="output" aria-labelledby="console-title" tabindex="0"></pre>
   </section>
- <details class="runtime-help"><summary>Troubleshooting</summary><p>If Python stops responding, restart the environment and try again. Your code and last completed result are kept.</p><button id="reset-runtime" type="button">Restart Python</button></details>
+ <details class="runtime-help resource-row">${resourceSummary('Troubleshooting',{icon:'tools'})}<p>If Python stops responding, restart the environment and try again. Your code and last completed result are kept.</p><button id="reset-runtime" type="button">Restart Python</button></details>
  </div><noscript><p class="note">Run requires JavaScript. Open the published result below to follow the example.</p></noscript>`;
  if(!l.fixture)throw Error('Missing input summary: '+l.slug);
  const prereq=number===1?'Basic Python lists, dictionaries, functions and lambdas.':`<a href="../${href(order[number-2].id)}">${lookup(order[number-2].id).title}</a>.`;
@@ -101,14 +102,14 @@ for(const [i,l]of lessons.entries()){
   <p class="prepared-state">The editor contains the published example. Select <strong>Run</strong> with the code unchanged.</p>
   <p class="note run-start-note">Python prepares in the background while you read. First use can download about ${runtimeMiB} MiB. Your code runs only when you select Run; each run starts with clean experiment state.</p>
   ${workbench}
-  <details class="worked"><summary>View the published result</summary><p>The course build ran the published code to generate this output.</p><pre tabindex="0">${data}</pre></details>
+  <details class="worked resource-row">${resourceSummary('View the published result',{icon:'result'})}<p>The course build ran the published code to generate this output.</p><pre tabindex="0">${data}</pre></details>
   <h3>Read the result</h3><p>${l.observe}</p>
   <section class="change"><h3>Change the experiment</h3><p>${l.change}</p><a id="back-to-editor" href="#code">Return to the editor</a></section>
-  <details class="runtime-contract"><summary>Runtime, source code and downloads</summary><p><a href="../about.html#runtime">Runtime and reset details</a> explain what stays ready and what is isolated on each run. Download Python packages the published helpers with the code in your editor.</p><p>Browse the sources for <a href="../python/course.py">Bytewax windows and authored models</a>, <a href="../python/kafka_lab.py">Kafka log and group exercises</a>, <a href="../python/live_kafka.py">live Kafka input</a>, <a href="../python/recovery_drill.py">checkpoint recovery</a> and <a href="../python/patterns.py">processing patterns</a>.</p></details>
+  <details class="runtime-contract resource-row">${resourceSummary('Runtime, source code and downloads',{icon:'info'})}<p><a href="../about.html#runtime">Runtime and reset details</a> explain what stays ready and what is isolated on each run. Download Python packages the published helpers with the code in your editor.</p><p>Browse the sources for <a href="../python/course.py">Bytewax windows and authored models</a>, <a href="../python/kafka_lab.py">Kafka log and group exercises</a>, <a href="../python/live_kafka.py">live Kafka input</a>, <a href="../python/recovery_drill.py">checkpoint recovery</a> and <a href="../python/patterns.py">processing patterns</a>.</p></details>
   ${implementation}
  </section>
  ${extensions}
- <details class="underhood"><summary>Work, state and recovery costs</summary><p class="note">Where used, n counts input events, k counts retained distinct keys, r counts overlapping windows per event and z counts output matches. Bounds assume the stated algorithm. Collecting, sorting and displaying results adds work.</p><div class="table-scroll"><table><thead><tr><th scope="col">Question</th><th scope="col">Mechanism and boundary</th></tr></thead><tbody>${depth(l).map((v,j)=>`<tr><th scope="row">${['Work','State','Movement','Progress','Recovery'][j]}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table></div></details>
+ <details class="underhood resource-row">${resourceSummary('Work, state and recovery costs',{icon:'cost'})}<p class="note">Where used, n counts input events, k counts retained distinct keys, r counts overlapping windows per event and z counts output matches. Bounds assume the stated algorithm. Collecting, sorting and displaying results adds work.</p><div class="table-scroll"><table><thead><tr><th scope="col">Question</th><th scope="col">Mechanism and boundary</th></tr></thead><tbody>${depth(l).map((v,j)=>`<tr><th scope="row">${['Work','State','Movement','Progress','Recovery'][j]}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table></div></details>
  ${renderExercise(l)}
  ${renderLessonReferences(l)}
  <section class="limits"><h2>Experiment scope</h2><p>${l.limit}</p><a href="${l.source}">Primary reference →</a></section>

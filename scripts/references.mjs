@@ -1,3 +1,4 @@
+import {resourceSummary} from './resource-row.mjs';
 import fs from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 
@@ -10,8 +11,8 @@ function link([label,url]){
  return `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer"><code>${esc(label)}</code><span class="reference-new-tab"> (new tab)</span></a>`;
 }
 
-export function renderReferences(items,{note,subtitle='API contracts, course helper code and reading checks'}={}){
- return `<details class="chapter-references" data-references><summary><span><strong>References</strong><span class="reference-subtitle">${esc(subtitle)}</span></span></summary><div class="reference-body"><p class="note">${esc(note||'Open a reference alongside the lesson. Library contracts and authored course policies are identified separately.')}</p><ul class="chapter-reference-list">${items.map(item=>`<li><h3>${esc(item.title)}</h3><div class="reference-links">${item.links.map(link).join('')}</div>${item.note?`<p>${esc(item.note)}</p>`:''}${item.question?`<p class="reference-question">${esc(item.question)}</p><details class="reference-answer"><summary>Compare your answer</summary><p>${esc(item.answer)}</p></details>`:''}</li>`).join('')}</ul></div></details>`;
+export function renderReferences(items,{note,subtitle='Function documentation and helper source'}={}){
+ return `<details class="chapter-references resource-row" data-references>${resourceSummary('References',{icon:'book',description:subtitle})}<div class="reference-body"><p class="note">${esc(note||'Open a reference alongside the lesson. Library contracts and authored course policies are identified separately.')}</p><ul class="chapter-reference-list">${items.map(item=>`<li><h3>${esc(item.title)}</h3><div class="reference-links">${item.links.map(link).join('')}</div>${item.note?`<p>${esc(item.note)}</p>`:''}</li>`).join('')}</ul></div></details>`;
 }
 
 export function referencesForLesson(lesson){
