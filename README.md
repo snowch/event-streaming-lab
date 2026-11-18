@@ -42,7 +42,7 @@ The Pages workflow checks pushes and pull requests. Successful main-branch check
 
 ## Runtime behavior
 
-Opening a lesson downloads no VM. First Run downloads the compressed VM and Python assets and reports actual progress, compiles the emulator and starts Linux. Fast reruns reuse the running guest and trusted helper imports while starting a fresh isolated Python process with private files and sockets. Fresh Linux mode starts a new guest each time. Stop and Reset Linux destroy it. A desktop browser with several hundred megabytes of available memory is recommended; physical low-memory mobile execution is not established by viewport tests.
+Executable lessons prepare verified assets, compile the emulator and start Python after rendering. Setup does not execute editor source. Automatic execution reuses the running guest and trusted helper imports while starting a fresh isolated Python process with private files and sockets. The compatibility runner starts a new guest each time. Stop and Restart Python destroy it. A desktop browser with several hundred megabytes of available memory is recommended; physical low-memory mobile execution is not established by viewport tests.
 
 Downloads have a five-minute timeout. A guest boot stalled for 60 seconds is retried once before Python starts; program execution is never automatically retried. Exports record initialization retries. Editor execution has a three-minute timeout after Python starts. Stop terminates the Worker and discards its guest. Reading marks never grade run success. There is no cross-device synchronization or complete offline-installation claim. See the [runtime build and reset contract](runtime/README.md).
 
