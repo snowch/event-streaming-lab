@@ -1,6 +1,6 @@
 const costs = {
   "follow-an-event": [
-    "One predicate call per input and one mapping call per retained record. With constant-cost functions, total O(n).",
+    "The filter tests its condition once for each input. The map runs once for each accepted record. With constant-cost functions, total O(n).",
     "O(1) auxiliary operator state; this page collects output in O(n) memory.",
     "No network exchange in the local pipeline. Payload serialization is a separate boundary.",
     "Can emit as each retained record is handled.",
@@ -9,9 +9,9 @@ const costs = {
   "evolve-an-event-schema": [
     "O(n) normalizations for constant-sized records; validation of arbitrary nested payloads also depends on bytes and structure.",
     "No remembered IDs; O(n) output including rejection records.",
-    "Executed locally, without network partitions. Separate payload bytes, external effects and transport from this reference.",
-    "Inspect the helper’s arrival, progress and emission rules; source completion is not a general definition of finality.",
-    "State and traces are not durable. A production restore must recover source progress, retained state and the sink’s effect contract together."
+    "The example reads Python dictionaries prepared in the editor. A wire-format decoder would add work that depends on the encoded bytes.",
+    "Each dictionary can be validated as it arrives. The finished list displays accepted data and rejections in input order.",
+    "Keep the original record and its schema version if a rejected event may be replayed later."
   ],
   "read-a-partitioned-log": [
     "Each produced record is serialized and sent through Kafka protocol, then decoded by KafkaSource. Work includes bytes, polling and metadata requests.",
@@ -23,9 +23,9 @@ const costs = {
   "retain-or-compact-a-log": [
     "O(n) filtering and expected hash updates; sorting surviving offsets adds O(k log k).",
     "O(n) reference log/output and O(k) latest-key index.",
-    "Executed locally, without network partitions. Separate payload bytes, external effects and transport from this reference.",
-    "Inspect the helper’s arrival, progress and emission rules; source completion is not a general definition of finality.",
-    "State and traces are not durable. A production restore must recover source progress, retained state and the sink’s effect contract together."
+    "The helper scans an in-memory list that stands in for one log partition.",
+    "The helper removes offsets below the requested floor, then selects the latest record per key when compaction is on.",
+    "Reconstructing current values requires enough retained records and deletions, or a snapshot and the positions from which to continue."
   ],
   "give-consumers-their-own-position": [
     "Two groups send actual commit/fetch requests and read their selected records. Protocol round trips and fetched bytes add to record handling work.",
@@ -37,12 +37,12 @@ const costs = {
   "choose-the-right-clock": [
     "O(n) assignments using constant-time integer arithmetic.",
     "O(n) trace records; no online retention logic.",
-    "Executed locally, without network partitions. Separate payload bytes, external effects and transport from this reference.",
-    "Inspect the helper’s arrival, progress and emission rules; source completion is not a general definition of finality.",
-    "State and traces are not durable. A production restore must recover source progress, retained state and the sink’s effect contract together."
+    "The input contains the timestamps for both clocks. The helper uses local arithmetic to assign windows.",
+    "The trace gives two membership assignments per order. A live window would need a separate rule for when to emit.",
+    "Keep the timestamp origin and rule with the fixture so later runs can reproduce the assignments."
   ],
   "close-a-window": [
-    "With r overlapping windows, each accepted event can contribute to r collectors. Emitting and sorting m collected events adds output-dependent work.",
+    "With r overlapping windows, each accepted event can contribute to r collectors. Emitting and sorting the collected events adds work that depends on their count.",
     "collect_window retains event payloads, not only a scalar sum. Retained bytes depend on input rate, window width, overlap and event size.",
     "A real local Bytewax event-time window; no broker transport, replication or distributed exchange is measured here.",
     "EventClock and window close rules govern live progress; bounded-source EOF flushes unfinished windows in this fixture.",
@@ -51,9 +51,9 @@ const costs = {
   "merge-a-session": [
     "The real SessionWindower groups by event-time gaps. Cost depends on open sessions, merging and collected event ordering; do not infer an indexed complexity bound from this fixture.",
     "collect_window retains each accepted event until its session emits. A long bridged session can retain unbounded history without a separate limit.",
-    "Executed locally, without network partitions. Separate payload bytes, external effects and transport from this reference.",
-    "Inspect the helper’s arrival, progress and emission rules; source completion is not a general definition of finality.",
-    "State and traces are not durable. A production restore must recover source progress, retained state and the sink’s effect contract together."
+    "One Bytewax worker groups events for one key. A distributed version must route events for a given key to the same owner.",
+    "The clock leaves these sessions eligible for merging. Bytewax emits the remaining sessions when input ends.",
+    "Restoring open sessions would require the source position, retained events and clock progress together."
   ],
   "wait-for-late-events": [
     "Each record is timestamped and considered by the real Bytewax window operator. Cost depends on open windows and collector size; the diagnostic trace is emitted output.",
@@ -63,11 +63,11 @@ const costs = {
     "Replaying with a different wait can change accepted membership. Record the policy and source fixture with the output."
   ],
   "correct-a-late-result": [
-    "O(t) actions plus copied trace/side-output history for this fixed single-window example.",
+    "O(t) work for t actions, plus the cost of copying trace entries and late output history.",
     "A scalar accumulator suffices for the sum; this teaching trace retains additional historical snapshots.",
-    "Executed locally, without network partitions. Separate payload bytes, external effects and transport from this reference.",
-    "Inspect the helper’s arrival, progress and emission rules; source completion is not a general definition of finality.",
-    "State and traces are not durable. A production restore must recover source progress, retained state and the sink’s effect contract together."
+    "The Python model reads the watermark actions and events from one fixed sequence.",
+    "The watermark triggers the initial output and later cleanup. An eligible record between those actions can revise the total.",
+    "A restart would need the accepted total, current revision, progress and the destination’s rule for applying a revision."
   ],
   "keep-state-by-key": [
     "One keyed state callback per order. Per-event routing/storage costs depend on Bytewax’s implementation and key/hash behavior; the accumulator update itself is O(1).",
@@ -84,46 +84,46 @@ const costs = {
     "A mutable latest lookup can change replayed answers even with identical source events."
   ],
   "count-the-join-output": [
-    "The actual helper performs n×m comparisons, plus z output writes. A suitable hash algorithm has a different expected bound.",
+    "For n orders and m receipts, the helper makes n×m comparisons and writes z matches. A suitable hash algorithm has a different expected bound.",
     "O(n+m+z) input and output records here. An unbounded online join also needs an eviction policy.",
-    "Executed locally, without network partitions. Separate payload bytes, external effects and transport from this reference.",
-    "Inspect the helper’s arrival, progress and emission rules; source completion is not a general definition of finality.",
-    "State and traces are not durable. A production restore must recover source progress, retained state and the sink’s effect contract together."
+    "Both lists are in local memory. A keyed distributed join would additionally move records to shared key owners.",
+    "The nested loops compare every order with every payment in the input lists.",
+    "Keep both input histories and the matching rule to reproduce a bounded result. An ongoing join needs a way to restore both source positions and unmatched state."
   ],
   "look-up-the-past": [
-    "The helper scans v versions per event: O(nv). A sorted history with binary search could use O(n log v) lookups.",
+    "The helper scans v table versions per event for O(nv) work. A sorted history with binary search could use O(n log v) lookups.",
     "O(v) history plus n output rows. Deleting needed versions changes the answer contract.",
-    "Executed locally, without network partitions. Separate payload bytes, external effects and transport from this reference.",
-    "Inspect the helper’s arrival, progress and emission rules; source completion is not a general definition of finality.",
-    "State and traces are not durable. A production restore must recover source progress, retained state and the sink’s effect contract together."
+    "The version list is local. A reference table delivered over the network can have its own arrival order.",
+    "The helper returns a match for each input using the provided history. An ongoing join would need a rule for when enough history is available.",
+    "Reproducing an old answer requires the same reference versions and time lookup rule."
   ],
   "replay-without-double-counting": [
     "One keyed state callback per delivery, with a constant-sized True state value. Routing/key lookup is engine work, distinct from an O(k) linear-list reference algorithm.",
     "One retained state entry per distinct logical ID, plus the scalar final total. Unbounded identity cardinality still means unbounded state.",
     "Bytewax routes identical IDs to the same logical state. This single-worker experiment does not measure a distributed shuffle.",
     "The authored remember callback rejects repeats. fold_final emits the total only at EOF, unlike an incremental running total.",
-    "Identity state disappears with this uncheckpointed guest. Producer idempotency, recovered identity state and sink idempotency are different contracts."
+    "Each run starts without remembered IDs. In a deployed pipeline, replay protection depends on which identities the producer, operator and destination can recover."
   ],
   "recover-after-a-failure": [
     "The engine updates a scalar per input and writes recovery state. The controller polls SQLite, observes completion, kills and starts an actual engine process.",
-    "Source position and keyed state are stored in a recovery DB. Input and output files persist across this process kill inside the same guest.",
+    "Source position and keyed state are stored in a recovery DB. The second engine can see the input and output files because it starts inside the same run.",
     "Process creation, SQLite I/O and a local output file are real. There is no external transactional sink or replicated checkpoint store.",
     "The kill is delayed until a completed checkpoint exists. Restart restores position 3 and total 25 before processing the final two records.",
-    "SIGKILL recovery is verified at the chosen checkpoint. Discarding the guest loses this volatile filesystem; ordinary output can duplicate at other failure boundaries."
+    "SIGKILL recovery is verified at the chosen checkpoint. These files are private to the run. A crash between an output write and its checkpoint can duplicate ordinary output on replay."
   ],
   "measure-operation-effort": [
     "Counts n map/update calls and linear-list membership comparisons; n and k are named separately.",
     "O(k) reference entries. Python object/key sizes and hash collision behavior are not represented by entry counts.",
-    "Executed locally, without network partitions. Separate payload bytes, external effects and transport from this reference.",
-    "Inspect the helper’s arrival, progress and emission rules; source completion is not a general definition of finality.",
-    "State and traces are not durable. A production restore must recover source progress, retained state and the sink’s effect contract together."
+    "The function counts calls and comparisons in memory.",
+    "The fixture reports counts after processing all n records.",
+    "Record n and k with the result so another run can reproduce the counts."
   ],
   "measure-latency-and-batching": [
     "O(n) scheduling records plus O(n log n) sorting for exact quantiles. Model service costs are authored parameters.",
     "O(n) per-event observations. Real online quantile sketches trade bounded space against approximation.",
-    "Executed locally, without network partitions. Separate payload bytes, external effects and transport from this reference.",
-    "Inspect the helper’s arrival, progress and emission rules; source completion is not a general definition of finality.",
-    "State and traces are not durable. A production restore must recover source progress, retained state and the sink’s effect contract together."
+    "The single server and its queue are modeled in Python using fixed arrival times.",
+    "Every member of a batch becomes visible at its modeled completion time.",
+    "The model tracks one uninterrupted schedule. Use a separate failure model to estimate unfinished work or replay."
   ],
   "when-the-consumer-falls-behind": [
     "Eight discrete ticks; each uses scalar arithmetic. General reference work is O(t) for t ticks.",
@@ -135,16 +135,16 @@ const costs = {
   "budget-for-recovery": [
     "O(1) arithmetic for the fluid formula. This is not the work performed by a recovery engine.",
     "O(1) model state. Actual retained backlog, snapshots and sink transactions can dominate storage.",
-    "Executed locally, without network partitions. Separate payload bytes, external effects and transport from this reference.",
-    "Inspect the helper’s arrival, progress and emission rules; source completion is not a general definition of finality.",
-    "State and traces are not durable. A production restore must recover source progress, retained state and the sink’s effect contract together."
+    "The calculation represents backlog with an event count and uses constant input and service rates.",
+    "Only service capacity above continuing arrivals reduces the modeled backlog.",
+    "The estimate starts when service returns. Measure the time to restore state and restart processing separately."
   ],
   "resolve-the-streaming-incident": [
     "Reference hash membership and keyed sink updates are expected O(1); copied trace lists add historical cost.",
     "Remembered accepted IDs, output revision and diagnostic history. The model does not implement retention expiry for dedup IDs.",
-    "Executed locally, without network partitions. Separate payload bytes, external effects and transport from this reference.",
-    "Inspect the helper’s arrival, progress and emission rules; source completion is not a general definition of finality.",
-    "State and traces are not durable. A production restore must recover source progress, retained state and the sink’s effect contract together."
+    "One Bytewax worker applies the incident policy and writes replacement totals to an in-memory view.",
+    "The supplied watermark actions trigger the first revision and cleanup. Check the trace to see which inputs fall between those points.",
+    "This replay starts with empty state. A real restore would need source position, accepted IDs, window progress and a way to apply sink revisions safely."
   ],
   "stream-live-through-kafka": [
     "Per record: serialize, produce, assign an offset, fetch/decode, update one key and observe output. This handshake includes protocol latency and is not a throughput test.",
@@ -162,7 +162,7 @@ export const mechanism = {
   ],
   "keep-state-by-key": [
     "Change cardinality, not only volume",
-    "Replay twice as many orders for the same two shops: update work doubles, but there are still two logical accumulators. Now keep the number of orders fixed and assign a unique shop to each: state entries grow. A fair performance investigation varies event count, key count and key frequency independently."
+    "If twice as many orders still go to two shops, the operator does twice as many updates and keeps two totals. If each order uses a different shop, the operator needs one total per order. A fair performance investigation varies event count, key count and key frequency independently."
   ],
   "close-a-window": [
     "Make overlap visible",
@@ -182,11 +182,11 @@ export const mechanism = {
   ],
   "when-the-consumer-falls-behind": [
     "Check conservation before speed",
-    "For the complete run, offered equals completed plus dropped plus still queued. A larger queue that hides rejection for a short run has not fixed a sustained rate mismatch. Compare arrival bursts, drain behavior and what happens when the input continues instead of stopping after five ticks."
+    "For the complete run, offered equals completed plus dropped plus still queued. A larger queue that hides rejection for a short run has not fixed a sustained rate mismatch. If the two arrivals per tick continue after tick five, a queue served at one record per tick eventually fills and starts dropping records."
   ],
   "recover-after-a-failure": [
     "Locate the tested failure boundary",
-    "The controller waits for a completed checkpoint before SIGKILL. That is strong evidence for source/state restoration at this boundary, but leaves the external-write/checkpoint race untested. Change checkpoint=False and inspect repeated output prefixes."
+    "The controller stops the process after a completed checkpoint. The result shows how that restart recovers source position and state. Testing a crash between a write and the next completed checkpoint would require controlling a different failure point."
   ],
   "read-a-partitioned-log": [
     "Partition count and keyed order",
@@ -194,6 +194,6 @@ export const mechanism = {
   ],
   "give-consumers-their-own-position": [
     "Assignments can move",
-    "During a rebalance an assignment moves between group members. A consumer must not continue committing or applying uncontrolled effects as if it still owned the partition. Real client/framework contracts manage assignment epochs and in-flight work. This cursor model intentionally does not implement that protocol."
+    "During a rebalance an assignment moves between group members. A consumer must not continue committing or applying uncontrolled effects as if it still owned the partition. Real client/framework contracts manage assignment epochs and in-flight work. The exercise assigns partitions explicitly and does not trigger a rebalance."
   ]
 };

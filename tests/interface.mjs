@@ -42,6 +42,22 @@ try{
   const style=getComputedStyle(document.querySelector(selector));
   return [style.color,style.backgroundColor];
  }));
+ assert.match(await page.locator('.prepared-state').textContent(),/editor contains the published example.*Run in Linux/);
+ assert.equal(await page.locator('.underhood').evaluate(e=>e.open),false);
+ assert.equal(await page.locator('.runtime-contract').evaluate(e=>e.open),false);
+ const runMode=page.locator('#run-mode-summary');
+ assert.match(await runMode.textContent(),/Run mode · (Fast reruns|Fresh Linux)/);
+ assert.equal(await page.locator('#run-mode').isVisible(),false);
+ await runMode.focus();await page.keyboard.press('Enter');
+ assert.equal(await page.locator('#run-mode').isVisible(),true);
+ await page.keyboard.press('Enter');
+ assert.equal(await page.locator('#run-mode').isVisible(),false);
+ await page.setViewportSize({width:320,height:760});
+ await page.locator('#back-to-editor').focus();await page.keyboard.press('Enter');
+ assert.equal(await page.evaluate(()=>document.activeElement.id),'code');
+ await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement.id),'run');
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'320 px lesson overflow');
+ await page.setViewportSize({width:1440,height:1000});
  const lightOutput=await outputPalette();assert.deepEqual(lightOutput[0],lightOutput[1]);
  assert.equal(await page.locator('#console-title').textContent(),'Console output');
  assert.equal(requests.some(url=>/\/(engine|assets\/linux)\//.test(url)),false,'navigation must not load the VM');
@@ -63,7 +79,11 @@ try{
   assert.ok(await reading.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),path+' overflows');
   if(path.startsWith('lessons/')||path.startsWith('advanced/')&&!path.endsWith('index.html')&&!path.endsWith('zeromq-companion.html'))assert.ok((await reading.locator('h1').boundingBox()).y<650,'static chapter opens with its heading');
  }
- await reading.goto(base+'lessons/route-and-quarantine.html');await reading.locator('.operator-source>summary').click();
+ await reading.goto(base+'lessons/route-and-quarantine.html');
+ assert.equal(await reading.locator('.experiment-input').isVisible(),true);
+ await reading.locator('.worked>summary').focus();await reading.keyboard.press('Enter');
+ assert.match(await reading.locator('.worked pre').innerText(),/quarantine/);
+ await reading.locator('.operator-source>summary').click();
  assert.match(await reading.locator('.operator-source code').textContent(),/op\.branch/);
  assert.ok(await reading.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await reading.locator('.operator-source').scrollIntoViewIfNeeded();await reading.screenshot({path:'test-results/gpu-style-operator-mobile.png'});
@@ -108,5 +128,29 @@ try{
   return {archive:[...saved.archive],changed,denied,writeDenied};
  }),{archive:[12,34,56],changed:null,denied:null,writeDenied:false});
  await cachePage.close();
+ const deniedContext=await browser.newContext();
+ await deniedContext.addInitScript(()=>{
+  const store=Storage.prototype.setItem;
+  store.call(localStorage,'esl:draft:follow-an-event','# Saved before storage became unavailable');
+  store.call(localStorage,'esl:draft-runtime:follow-an-event','bytewax-v1');
+  Storage.prototype.setItem=()=>{throw new DOMException('Storage denied','QuotaExceededError')};
+ });
+ const deniedPage=await deniedContext.newPage();
+ await deniedPage.goto(base+'lessons/follow-an-event.html');
+ assert.equal(await deniedPage.locator('#saved-draft-notice').isVisible(),true);
+ assert.equal(await deniedPage.locator('.prepared-state').isVisible(),false);
+ await deniedPage.locator('#code').fill('# Unsaved edit');
+ assert.match(await deniedPage.locator('#draft-status').textContent(),/Could not save this change/);
+ await deniedPage.locator('#restore').click();
+ assert.equal(await deniedPage.locator('.prepared-state').isVisible(),true);
+ assert.match(await deniedPage.locator('#draft-status').textContent(),/available in this tab/);
+ await deniedPage.locator('#recover-draft').click();
+ assert.equal(await deniedPage.locator('#code').inputValue(),'# Unsaved edit');
+ await deniedPage.locator('#done').check();
+ assert.match(await deniedPage.locator('#save-status').textContent(),/lasts for this visit/);
+ await deniedPage.reload();
+ assert.equal(await deniedPage.locator('#code').inputValue(),'# Saved before storage became unavailable');
+ assert.equal(await deniedPage.locator('#done').isChecked(),false);
+ await deniedContext.close();
  console.log('PASS GPU-style interface: centered chapters, self-hosted type, keyboard/outside/Escape navigation, themes, all 51 static phone layouts, inspectable source and no VM before activation.');
 }finally{await browser?.close();server.kill()}

@@ -1,6 +1,6 @@
 # Learning and interface review
 
-Current implementation: the comprehensive 46-chapter Linux/Bytewax course in the latest entry below supersedes earlier runtime and curriculum descriptions. Earlier entries are retained as review history.
+The current [clear wording and interface review](clear-wording-review.md) covers all 51 learner-facing pages of the 46-chapter Linux/Bytewax course. The entries below document earlier reviews.
 
 ## Applied skills
 

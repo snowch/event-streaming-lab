@@ -11,7 +11,8 @@ export const lessons = [
   "tag": "Real Bytewax",
   "goal": "Read an event record and explain which records a filter keeps.",
   "intro": "The bicycle shop wants a live view of larger orders. Before adding a broker or a dashboard, follow five small records through one pipeline.",
-  "concept": "An event records something that happened. Our fixture has an ID, a shop, an amount in pounds, and an event timestamp in seconds. A Bytewax Dataflow describes a graph; it does not run until collect attaches a TestingSink and calls run_main. filter keeps matching records; map transforms each retained record. Stable step IDs identify operators in that graph.",
+  "concept": "An event records something that happened. Each order has an ID, shop, amount in pounds and the time of the sale in seconds. A Bytewax dataflow connects steps. <code>filter</code> keeps orders that meet a condition, then <code>map</code> selects the fields to return. The <code>collect</code> helper runs these steps and returns their output as a list.",
+  "fixture": "Five orders arrive in the order a (£12), b (£8), c (£5), d (£7), e (£9). The editor imports them as <code>ORDERS</code>.",
   "predict": "Which order IDs will survive a minimum amount of £9? Does filtering change their arrival order?",
   "code": `import bytewax.operators as op
 from bytewax.dataflow import Dataflow
@@ -24,15 +25,15 @@ selected = op.filter('minimum', source, lambda order: order['amount'] >= 9)
 shaped = op.map('shape', selected,
     lambda order: {'id': order['id'], 'pounds': order['amount']})
 result = collect(flow, shaped)`,
-  "observe": "Find a, b, c, d and e in the input below. The output should contain a and e, in that order. A map transforms the records; it does not sort them.",
-  "change": "Change the threshold from 9 to 7. Predict the new IDs before running again.",
+  "observe": "The console lists <code>id</code> and <code>pounds</code> for each retained order. Find a and e in that order, then compare with the five input orders above. The filter keeps matching orders in this run and the map changes their fields.",
+  "change": "Replace <code>order['amount'] &gt;= 9</code> with <code>order['amount'] &gt;= 7</code> in the editor. Select Run in Linux again. Compare the output IDs and their order. Which amounts qualify at £7 that did not qualify at £9?",
   "question": "If the downstream dashboard shows only two orders, can you conclude that only two orders arrived?",
   "hints": [
     "Separate arrival from selection.",
     "Count the input records, then the output records.",
     "The filter rejects b, c and d at the original threshold."
   ],
-  "answer": "No. Five arrived, but only two met the predicate. A small output can hide a large input. Capture input and rejection counts when diagnosing a real pipeline.",
+  "answer": "Five arrived, and two met the filter condition. The output count alone cannot tell you the input count. Capture both the total input and the rejected records when investigating a real pipeline.",
   "limit": "This is a finite Bytewax TestingSource in one worker. The Kafka chapters add real protocol clients connected to an in-memory simulator. This source has no broker or durable log.",
   "source": "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py"
 },
@@ -43,8 +44,8 @@ result = collect(flow, shaped)`,
   "tag": "Real Bytewax",
   "minutes": 25,
   "goal": "Validate event meaning, preserve rejected evidence, and distinguish compatible shape from compatible semantics.",
-  "intro": "A checkout upgrade changes amount from pounds to pence. Every message is valid JSON and the pipeline still runs, yet sales jump by a factor of one hundred. Syntactic compatibility has hidden a business-contract change.",
-  "concept": "An envelope carries stable identity, event type, schema version and timestamps around a payload. Validation should check required fields, types, units and constraints. A schema version identifies a contract, not permission to guess. Here version 1 means integer pounds and version 2 means integer pence. Reject an unknown version rather than interpreting it using whichever code happens to run.",
+  "intro": "A checkout upgrade switches the amount in each order from pounds to pence. The old reader still accepts the JSON, but interpreting pence as pounds makes the reported value 100 times too large.",
+  "concept": "A schema describes what fields are required and what they mean. The <code>version</code> field tells the reader which rules to apply. In this example, version 1 uses whole pounds and version 2 uses whole pence. The editor’s normalization code converts known versions to pence and reports why it rejects others.",
   "code": `import bytewax.operators as op
 from bytewax.dataflow import Dataflow
 from bytewax.testing import TestingSource
@@ -68,8 +69,8 @@ source = op.input('records', flow, TestingSource(records))
 normalized = op.map('normalize', source, normalize)
 result = collect(flow, normalized)`,
   "predict": "Should a and b both be multiplied by 100? What should happen to c when no version-3 contract exists?",
-  "observe": "a becomes 1200 pence and b stays 850 pence. c and d produce explicit rejection records. Returning rejection data keeps the stream alive in this example; raising an exception instead fails the dataflow unless an error policy catches it.",
-  "change": "Give b version 1 without changing its payload. The result remains type-correct but changes meaning. Explain why a schema checker cannot infer the intended unit.",
+  "observe": "Find <code>pence</code> for a and b and <code>rejected</code> for c and d. The normalizer returns rejection rows so the remaining records can still be processed.",
+  "change": "Replace <code>{'id':'b', 'version':2, 'amount':850}</code> with <code>{'id':'b', 'version':1, 'amount':850}</code> in the editor. Select Run in Linux again. Compare b’s <code>pence</code>. How can the same integer still pass validation but represent a different amount?",
   "question": "Can a dead-letter topic alone make a schema change safe?",
   "hints": [
     "Consider who notices and repairs the rejected events.",
@@ -77,7 +78,7 @@ result = collect(flow, normalized)`,
     "A separate destination does not define a repair procedure."
   ],
   "answer": "No. Specify alert ownership, original payload and error provenance, replay identity, permissions and retention. Validate backward/forward compatibility for the actual schema format, and distinguish structural changes from changes to units or business definitions. Reprocessing must not silently duplicate earlier effects.",
-  "limit": "The fixture validates four explicit envelopes. It does not implement a schema registry, a general JSON validator or a dead-letter service.",
+  "limit": "The editor validates four records with rules specific to this exercise. It has no shared schema catalog or separate service for storing rejected data.",
   "source": "https://kafka.apache.org/44/design/design/",
   "extra": [
     [
@@ -89,7 +90,7 @@ result = collect(flow, normalized)`,
       "Capture the source partition/offset, schema identifier, error reason and original bytes when available. Separate rejection from temporary processing failure: a timeout might merit retry, while an unsupported version usually needs a deployment or data repair. These distinctions prevent infinite retry loops that block an entire partition."
     ]
   ],
-  "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. Four records: a (v1, 12 pounds), b (v2, 850 pence), c (unknown v3), d (negative amount)."
+  "fixture": "The editor defines four records: a has 12 pounds, b has 850 pence, c uses unknown version 3 and d has a negative amount."
 },
 {
   "slug": "read-a-partitioned-log",
@@ -100,13 +101,13 @@ result = collect(flow, normalized)`,
   "tag": "Kafka protocol simulator",
   "goal": "Distinguish a topic, a partition and an offset, and explain ordering within a partition.",
   "intro": "The Python pipeline explains how to process records. Kafka answers a different question: how can producers append events that independent consumers can read later? Start by making that log visible.",
-  "concept": "A partition is an ordered sequence with its own offsets. The helper starts librdkafka’s in-memory Kafka simulator, produces JSON records over real client sockets, and reads them with Bytewax KafkaSource. North is explicitly routed to partition 0 and South to partition 1; this is our routing choice, not the default Kafka key hash. Output is sorted per partition for inspection.",
+  "concept": "A Kafka topic is a named log split into partitions. Each partition orders its own records, and an offset is a record’s position in that partition. The editor starts librdkafka’s in-memory Kafka simulator, writes orders with a Kafka producer and reads them with Bytewax. The example explicitly sends North orders to partition 0 and South orders to partition 1.",
   "predict": "Will order b and order c have the same offset even though they are different events?",
   "code": `from course import partition_log
 
 result = partition_log()`,
-  "observe": "Partition 0 contains a, c and d at offsets 0, 1 and 2. Partition 1 contains b and e at offsets 0 and 1. Offset 1 is meaningful only with its partition. Event timestamps may decrease even when offsets increase.",
-  "change": "Change the result expression to partition_log()[\"0\"]. Compare the append order with event-time order. Which order would be lost if you sorted the records?",
+  "observe": "Compare the <code>id</code> and <code>offset</code> rows in partitions <code>0</code> and <code>1</code>. Partition 0 contains a, c and d. Partition 1 starts its own offsets at 0 and contains b and e.",
+  "change": "Replace <code>result = partition_log()</code> with <code>result = partition_log()[\"0\"]</code> in the editor. Select Run in Linux again. Read the IDs in increasing <code>offset</code> order. Their event times are a=0, c=8 and d=3 seconds. Where do append order and event-time order differ?",
   "question": "Can you merge two partitions by offset and claim that this reproduces a single global arrival order?",
   "hints": [
     "Two records can share an offset.",
@@ -116,33 +117,33 @@ result = partition_log()`,
   "answer": "No. Offset order is local to a partition. Merging equal offsets invents an order the logs did not establish. If related events require ordered processing, choose a key and partitioning contract that keeps them together; changing partition counts and producer behavior can affect that contract.",
   "limit": "The producer, Kafka protocol traffic and Bytewax connector are real. The broker is an in-memory librdkafka simulator. Reading this fixture does not establish disk durability, replication, retention or cross-partition ordering.",
   "source": "https://kafka.apache.org/intro",
-  "fixture": "Five JSON orders are produced through a real Kafka client. Explicit routing uses partition 0 for North and partition 1 for South. Other automatically created simulator partitions are empty."
+  "fixture": "A Kafka producer explicitly routes North orders to partition 0 and South orders to partition 1. Their respective event times are a=0, c=8, d=3 and b=12, e=25 seconds."
 },
 {
   "slug": "stream-live-through-kafka",
   "title": "Stream live through Kafka",
   "short": "A producer, a socket, and an engine that keeps listening.",
-  "tag": "Live Kafka / real Bytewax",
+  "tag": "Bytewax and simulated broker",
   "minutes": 40,
-  "goal": "Observe live Kafka records update real Bytewax keyed state and distinguish broker offsets from state and checkpoint progress.",
+  "goal": "Observe how a running Bytewax engine updates each shop total as orders arrive. Explain what an offset tells you about a record.",
   "intro": "The dashboard must update while orders are still arriving. A finite list can teach transformations, but it cannot show a producer sending more work to an already-running consumer. This experiment starts separate producer/controller and Bytewax engine processes inside your browser’s Linux guest.",
-  "concept": "The controller owns an in-memory librdkafka Kafka simulator and a real Kafka producer. The child process builds a Bytewax KafkaSource that tails partition 0 and a stateful_map keyed by shop. After the first result arrives, the controller produces the next record. That handshake repeats, proving four events arrive after the engine is already processing. Offsets label records within this partition; the running total belongs to a shop key.",
+  "concept": "The controller starts an in-memory Kafka simulator and a Kafka producer. A separate Bytewax process reads new records from partition 0 and keeps a running total for each shop. The controller waits for each result before sending the next order, so you can identify which orders arrived after the engine was already processing.",
   "predict": "Which output totals change when the fourth amount changes from 7 to 70? Will the Kafka offsets change?",
   "code": `from live_kafka import live_stream
 
 # A new event is produced only after the previous result arrives.
 # All five records use partition 0; keys still own separate totals.
 result = live_stream(amounts=[12, 8, 5, 7, 9])`,
-  "fixture": "Five live JSON/byte records use keys North,South,North,North,South and amounts 12,8,5,7,9. Explicit partition 0 gives offsets 0..4. The controller produces event n+1 after observing result n, then stops the engine after all five verified results.",
-  "observe": "North totals 12 → 17 → 24 and South totals 8 → 17. Offsets advance 0..4 across both keys, because all records share one source partition. live_arrivals=4 records the handshake condition. The final trace contains actual observed results, not a rendered forecast.",
-  "change": "Change the fourth amount to 70. Predict North’s final total (87), keep the keys and offsets unchanged, then run. Explain why this alters business state without changing the transport position.",
+  "fixture": "Orders arrive in this order: North £12, South £8, North £5, North £7 and South £9. All five go to partition 0, at offsets 0 through 4.",
+  "observe": "Inspect <code>records</code> for each order’s <code>offset</code>, <code>key</code>, and <code>total</code>. The updates interleave the two shop totals, whereas the offsets count every record in partition 0. <code>live_arrivals</code> counts records sent after an earlier result arrived.",
+  "change": "Replace <code>[12, 8, 5, 7, 9]</code> with <code>[12, 8, 5, 70, 9]</code> in the editor. Select Run in Linux again. Compare North’s last <code>total</code> with the <code>offset</code> sequence in <code>records</code>. Which evidence tracks business state, and which tracks source position?",
   "question": "After the controller stops, does the existence of offsets 0..4 prove those records will survive closing this page?",
   "hints": [
     "Identify which component owns the log storage.",
     "The simulator stores records in the controller’s memory.",
     "Offsets identify positions; storage durability is another contract."
   ],
-  "answer": "No. The simulator’s log vanishes with its owning process and the guest is discarded after the run. The protocol traffic and Bytewax state updates are real, but broker disk durability and replication have not been tested. Keeping a Kafka-looking offset is not a persistence guarantee.",
+  "answer": "The simulator stores its log in the controller’s memory. That log disappears when the process ends, even when Fast reruns keep Linux ready. Offsets identify positions, and this exercise has no persistent broker storage.",
   "limit": "Real Kafka producer/consumer sockets and a real Bytewax engine run in separate Linux processes. The server is a one-broker, in-memory librdkafka simulator. The source tails until the controller stops it; no checkpoint, retention or broker failover is configured.",
   "source": "https://github.com/confluentinc/librdkafka/blob/v2.6.1/src/rdkafka_mock.h",
   "extra": [
@@ -169,8 +170,8 @@ result = live_stream(amounts=[12, 8, 5, 7, 9])`,
 
 result = retained_log(start=2, compact=True)`,
   "predict": "After offsets 0 and 1 are unavailable, does compaction renumber the remaining offsets from zero?",
-  "observe": "The surviving compacted records have offsets 3, 4 and 5. b’s tombstone remains visible. There is no surviving record at position 2, but 2 still has meaning as a seek position. A consumer must distinguish its requested position from the next available record.",
-  "change": "Set compact=False and compare a’s updates. Then set start=0. Explain which historical questions each view can answer.",
+  "observe": "Read <code>offset</code>, <code>key</code>, and <code>value</code> in <code>records</code>. Compaction keeps the latest row for each key in the retained range. A <code>null</code> value marks a delete. Compare the requested start at 2 with the first surviving record at offset 3.",
+  "change": "Replace <code>compact=True</code> with <code>compact=False</code> in the editor. Select Run in Linux again. Compare the versions of key a in <code>records</code>. Then replace <code>start=2</code> with <code>start=0</code> and select Run in Linux again. Which earlier history becomes visible when both policies change?",
   "question": "Can a new consumer rebuild a complete state snapshot if required tombstones have expired before it finishes reading?",
   "hints": [
     "Consider a previously materialized value for a deleted key.",
@@ -190,7 +191,7 @@ result = retained_log(start=2, compact=True)`,
       "An event-sourced application also defines event meaning, stable identity, version evolution and reconstruction rules. A topic configured for current-state distribution may be unsuitable for an audit trail. Choose the required questions first: rebuild the present, reproduce a past decision, or retain every accepted business event."
     ]
   ],
-  "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. Offsets 0..5: a=10, b=8, a=12, c=5, b=tombstone, a=15."
+  "fixture": "Offsets 0..5: a=10, b=8, a=12, c=5, b=tombstone, a=15."
 },
 {
   "slug": "give-consumers-their-own-position",
@@ -202,14 +203,15 @@ result = retained_log(start=2, compact=True)`,
   "goal": "Explain independent consumer-group positions and identify what an offset commit records.",
   "intro": "Sales needs current totals. Audit needs every retained event. Both should read the same topic without consuming records away from each other.",
   "concept": "A consumer group stores its own next position per partition. This helper sends actual OffsetCommit requests to the simulator, closes that client, then opens a new client and fetches the stored positions. Sales starts at the editable next position and audit starts at zero. Both assign partitions explicitly; this tests offset storage and independent reads, not a membership rebalance.",
+  "fixture": "Both groups read the same five orders. The edited setting changes the sales group’s next offset in both partitions. Audit always starts at 0.",
   "predict": "Sales has committed position 1 in both partitions. Audit starts at 0. Will audit still see the records sales has already processed?",
   "code": `from course import consume_log
 
 # The committed position is the NEXT offset to read.
 # This example applies the same position to both partitions.
 result = consume_log(committed=1)`,
-  "observe": "Sales skips a and b but still sees c, d and e. Audit sees all five. Reading changes a consumer’s position; it does not delete an event. Retention is a separate broker policy.",
-  "change": "Change committed=1 to committed=0. Explain why this replays events for sales. Then try 2: which records will sales skip?",
+  "observe": "Compare the IDs in <code>sales</code> and <code>audit</code> by partition. Sales reads from its committed next offset, while audit reads from offset 0. Reading changes a consumer’s position, and retention determines what remains in the log.",
+  "change": "Replace <code>committed=1</code> with <code>committed=0</code> in the editor. Select Run in Linux again. Compare the two groups in <code>sales</code> and <code>audit</code>. Then replace <code>committed=0</code> with <code>committed=2</code> and select Run in Linux again. Which IDs can sales still read, and does audit change?",
   "question": "If a consumer commits position 2 before its sink has written the record at offset 1, what happens when it crashes?",
   "hints": [
     "Restart begins at the committed next position.",
@@ -233,11 +235,10 @@ result = consume_log(committed=1)`,
 
 processing_times = {"a": 0, "b": 12, "c": 13, "d": 14, "e": 25}
 result = clock_windows(processing_times)`,
-  "prepare": "Select Run in Linux below with the code unchanged.",
   "predict": "Order c happened at event time 8 but is observed at processing time 13. Which ten-second window does each clock assign it to?",
-  "observe": "In Follow the evidence, use Next trace step until <code>id</code> is <code>c</code>. You can also find that row in the console’s <code>trace</code>. Compare <code>event_time</code> and <code>processing_time</code>, then check which windows they select in <code>event_window</code> and <code>processing_window</code>.",
-  "change": "In the editor, change the entry for order <code>c</code> in <code>processing_times</code> from <code>13</code> to <code>9</code>. Select Run in Linux again. Find the row with <code>id</code> <code>c</code> and compare its <code>event_window</code> and <code>processing_window</code> with the first run. Which changes? The event time and ten-second window rule stay fixed. The trace keeps the same order of rows, <code>a</code> through <code>e</code>, even when an edited timestamp changes their processing order.",
-  "question": "A producer accidentally emits a timestamp a year in the future. What can happen to a maximum-seen-minus-delay watermark?",
+  "observe": "In the trace, use Next trace step until <code>id</code> is c, or find c in the console’s <code>trace</code>. Compare <code>event_time</code> and <code>processing_time</code> and read which windows these values select in <code>event_window</code> and <code>processing_window</code>.",
+  "change": "Replace <code>\"c\": 13</code> with <code>\"c\": 9</code> in the editor. Select Run in Linux again. Find c again. Compare <code>event_window</code> and <code>processing_window</code> with the first run. Which window changes when event time and the ten-second window rule stay fixed? The trace lists orders a through e in fixture order.",
+  "question": "Suppose a watermark uses the greatest event timestamp seen so far minus a fixed wait. This marker tells the system how far event time has progressed. What can happen if a producer sends a timestamp a year in the future?",
   "hints": [
     "The maximum timestamp influences every subsequent watermark.",
     "Monotonic progress generally cannot be rewound to rescue older windows.",
@@ -274,8 +275,8 @@ result = clock_windows(processing_times)`,
 # Four records at event times 1, 7, 12 and 18.
 # Real EventClock + SlidingWindower; EOF flushes open windows.
 result = timed_windows(width=10, slide=10)`,
-  "observe": "The [0,10) window contains a and b; [10,20) contains c and d. The result shows membership, not observed wall-clock emission times. A slide of five creates overlapping memberships, including windows starting before zero.",
-  "change": "Set slide=5 while keeping width=10. Count each event’s memberships and identify the windows that start before the alignment origin.",
+  "observe": "Read <code>start</code>, <code>end</code>, and <code>events</code> in each emitted window. The first window includes event times from 0 up to 10 and holds a and b. The second starts at 10 and holds c and d. The result records membership at the end of the source.",
+  "change": "Replace <code>slide=10</code> with <code>slide=5</code> in the editor. Select Run in Linux again. Keep <code>width=10</code>. Check how often each ID appears in <code>events</code> and find the row whose <code>start</code> is below zero. Why does a window start before the first event?",
   "question": "If a record carries an old timestamp, will this built-in operator automatically move it into an earlier buffer?",
   "hints": [
     "Find the clock supplied to the window operator.",
@@ -283,9 +284,9 @@ result = timed_windows(width=10, slide=10)`,
     "An earlier event-time window can still accept a record while it remains open."
   ],
   "answer": "The clock configuration determines which time is read. Here EventClock explicitly extracts the timestamp, so an accepted out-of-order event can enter its earlier event-time window while that window remains open. A processing-time clock would answer a different question.",
-  "limit": "This is a real Bytewax event-time operator with a deterministic clock. EOF flush, a generous wait and a four-event bounded source differ from a live infinite stream. No virtual scheduler throughput is measured.",
+  "limit": "This run uses a real Bytewax time window with a fixed wall clock, a 30-second wait and four inputs. The source ends after the fourth record, so Bytewax emits any windows still open. Use the course’s native performance guide to measure throughput.",
   "source": "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/windowing.py",
-  "fixture": "Four records: a at event time 1, b at 7, c at 12, d at 18. The wall clock is frozen; EventClock waits 30 seconds. EOF flushes unfinished windows."
+  "fixture": "Four records: a at time 1, b at 7, c at 12 and d at 18 seconds. Frozen wall time and a 30-second wait keep them eligible. The source ends after d."
 },
 {
   "slug": "merge-a-session",
@@ -300,8 +301,8 @@ result = timed_windows(width=10, slide=10)`,
 
 result = sessions(gap=5)`,
   "predict": "After arrivals 0 and 8 there are two groups. After 4 arrives, how many groups should those three events occupy?",
-  "observe": "Real Bytewax SessionWindower merges times 0, 4 and 8 into one session at gap=5, despite the arrival order 0, 8, 4, 20. The returned trace lists final emitted sessions; it does not show intermediate internal engine state.",
-  "change": "Try gap=3, then gap=8. Compare final membership. Use arrival order 0,8,4,20 to explain how a bridge can combine groups. The trace shows final emissions, so distinguish your reasoning about intermediate work from observed internal engine state.",
+  "observe": "Read the <code>events</code> list of each row in <code>sessions</code>. The first session holds 0, 4 and 8 even though 8 arrived before 4. This result shows final sessions emitted by Bytewax.",
+  "change": "Replace <code>gap=5</code> with <code>gap=3</code> in the editor. Select Run in Linux again. Then replace <code>gap=3</code> with <code>gap=8</code> and select Run in Linux again. Compare session membership across your three runs. Use the arrival order 0, 8, 4, 20 to explain how the delayed event at 4 changes the final grouping.",
   "question": "If the first session was already emitted and its state discarded, can the late bridging event be handled by simply adding one to a session counter?",
   "hints": [
     "The bridge may change the number of sessions as well as their aggregate.",
@@ -309,7 +310,7 @@ result = sessions(gap=5)`,
     "Previously emitted results may need retraction or replacement."
   ],
   "answer": "No. An exact correction may require the earlier session state and a way to revise its output. Choose a lateness/retention policy and a changelog contract, or route the bridge to a separate correction process once state is gone. A fixed-size counter cannot reconstruct forgotten membership.",
-  "limit": "A real one-key Bytewax SessionWindower with a frozen clock and a 30-second wait. EOF flushes sessions. Processing-time triggers, multi-input idleness and distributed ownership are separate investigations.",
+  "limit": "This run uses a real Bytewax SessionWindower with one key, a fixed wall clock and a 30-second wait. Bytewax emits any open sessions when the source ends. Processing-time triggers and progress across multiple inputs require separate examples.",
   "source": "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/windowing.py",
   "extra": [
     [
@@ -321,7 +322,7 @@ result = sessions(gap=5)`,
       "A five-second gap is an analytical definition. It does not prove whether two visits belong to one person or one intent. State what key identifies a visitor, how identity changes are treated, and how late events affect already published session counts."
     ]
   ],
-  "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. One key; arrival timestamps 0,8,4,20. Gap equality is merged. Sessions remain open until EOF."
+  "fixture": "Four event times arrive as 0, 8, 4 and 20 seconds, all with the same key. The clock uses a 30-second wait to keep this fixture eligible."
 },
 {
   "slug": "wait-for-late-events",
@@ -332,15 +333,16 @@ result = sessions(gap=5)`,
   "tag": "Bytewax EventClock",
   "goal": "Explain a watermark, route late events, and identify the latency/state tradeoff.",
   "intro": "A mobile checkout uploads an order late. A window has already closed without it. The sales dashboard is consistent with arrival order, but disagrees with when the sale happened.",
-  "concept": "Event time is when something happened; processing time is when an operator handles it. Bytewax EventClock extracts timestamps and tracks event-time progress with a configured wait. Here wall time is frozen, so input timestamps drive this experiment. collect_window exposes accepted window results and a separate late stream. The output trace contains actual emissions; it does not expose an internal watermark metric. The trace presents collected windows followed by late records; it is not a captured temporal schedule.",
+  "concept": "A watermark estimates how far event time has progressed. Bytewax uses that marker to decide when windows can close and whether an arriving record is late. The <code>wait</code> setting gives out-of-order records time to arrive. In this run, a fixed wall clock lets you see how input timestamps affect progress. The result includes both the records accepted into windows and those sent to the late output.",
+  "fixture": "The five event times arrive as 0, 12, 8, 3 and 25 seconds. The editor selects the clock’s five-second wait. Wall time is frozen.",
   "predict": "Arrival timestamps are 0, 12, 8, 3 and 25. With a five-second wait, will order d at time 3 still be accepted?",
   "code": `from course import event_time
 
 # Real EventClock + TumblingWindower + collect_window.
 # Inspect course.py for the clock and late side output.
 result = event_time(wait=5)`,
-  "observe": "Order d at time 3 appears on the real late side output. The first window contains a and c, totaling £17. At wait=30, d joins that window and the total becomes £24. Accepted records are ordered by event time inside each collected window. EOF flushes open windows.",
-  "change": "Change wait=5 to wait=30. Compare window membership and the late list. Explain which records the engine must retain longer.",
+  "observe": "Find order d in <code>late</code>. In <code>windows</code>, find the first row’s <code>ids</code> and <code>total</code>. Bytewax reports accepted records in event-time order for each emitted window. The source ends and the engine emits any open windows.",
+  "change": "Replace <code>wait=5</code> with <code>wait=30</code> in the editor. Select Run in Linux again. Compare <code>late</code> and the first window’s <code>ids</code> and <code>total</code>. Which additional order contributes to the first window?",
   "question": "Does increasing the wait guarantee that every real-world event will be accepted?",
   "hints": [
     "Our fixture is finite. A production delay might not be.",
@@ -359,13 +361,13 @@ result = event_time(wait=5)`,
   "minutes": 35,
   "goal": "Distinguish watermark delay, allowed lateness, initial emission and state cleanup.",
   "intro": "The first sales result for [0,10) is £10. A delayed £5 order for that window arrives after its first emission. You can reject it, revise the result, or store a correction elsewhere. The choice must reach the sink as well as the window operator.",
-  "concept": "Our earlier lab rejected every event below its watermark. This alternative policy emits when watermark reaches window end 10, retains state until watermark reaches 10 plus allowed lateness, and emits a replacement after an accepted late update. It rejects subsequent contributions once cleanup happens. This makes two controls distinct: delaying progress before first emission and retaining state after that emission.",
+  "concept": "In the previous lab, Bytewax routed records below its watermark to the late output. This Python model illustrates another policy. When the watermark reaches the window end at 10, the model emits its first total. It can still replace that total when an eligible record arrives before cleanup. Cleanup deletes this window’s state when the watermark reaches 10 plus the allowed lateness.",
   "code": `from course import corrections
 
 result = corrections(lateness=5)`,
   "predict": "The watermark reaches 10, then b arrives, then the watermark reaches 15, then c arrives. Which late event can still correct the window?",
-  "observe": "The output contains revision 1 with total 10 and revision 2 with total 15. b is accepted during retention; c goes to the late list after cleanup. Revisions are replacement totals, not additional sales.",
-  "change": "Set lateness=0. Explain why b now joins c in the late output even though the window’s first result is still emitted. Then use lateness=10 and explain c’s changed treatment.",
+  "observe": "Compare the <code>revision</code> and <code>total</code> of the first and last rows in <code>updates</code>. Each revision replaces the prior total for that window. <code>late</code> lists orders this policy rejects after cleanup.",
+  "change": "Replace <code>lateness=5</code> with <code>lateness=0</code> in the editor. Select Run in Linux again. Then replace <code>lateness=0</code> with <code>lateness=10</code> and select Run in Linux again. Compare <code>updates</code> and <code>late</code> in all three runs. Which arrivals can still revise the first total?",
   "question": "If a downstream system sums the two replacement totals 10 and 15, what result will it compute, and why is that wrong?",
   "hints": [
     "The same window key appears twice.",
@@ -385,7 +387,7 @@ result = corrections(lateness=5)`,
       "A late side output should retain event identity, the original timestamp and the policy/position that caused rejection. It enables auditing or a later batch correction. It does not automatically repair the already published aggregate. Define who consumes it and how an eventual correction avoids duplicate effects."
     ]
   ],
-  "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. One [0,10) window: a=10; watermark 10; b=5; watermark 15; c=7. All events belong to that window."
+  "fixture": "All three orders belong to the window from 0 up to 10 seconds. The model receives a (£10), advances the watermark to 10, receives b (£5), advances the watermark to 15, then receives c (£7)."
 },
 {
   "slug": "keep-state-by-key",
@@ -396,7 +398,8 @@ result = corrections(lateness=5)`,
   "tag": "Real Bytewax",
   "goal": "Explain how keyed state differs from a single running total.",
   "intro": "North and South need separate sales totals. Adding every order into one number gives the company total, but answers neither shop’s question.",
-  "concept": "A key identifies records sharing state. key_on attaches a shop key. stateful_map calls add with the previous state for that key, or None initially. The callback returns a pair: next state and one output value. Bytewax owns these accumulators; a Python closure is not the state backend. The final sort presents rows by fixture arrival ID, without establishing ordering across keys.",
+  "concept": "A key tells Bytewax which records share a running total. <code>key_on</code> uses the shop name as the key. <code>stateful_map</code> passes the previous total for that shop to <code>add</code>, or <code>None</code> if this is the first record. The function returns the new total to keep and the record to emit.",
+  "fixture": "The editor imports the five bicycle-shop orders. Each order supplies an amount and a shop. The key function selects which running total to update.",
   "predict": "What will North’s total be after its third order? Will South’s orders change it?",
   "code": `import bytewax.operators as op
 from bytewax.dataflow import Dataflow
@@ -413,8 +416,8 @@ updated = op.stateful_map('sum', keyed, add)
 rows = collect(flow, updated)
 # Present updates in original arrival order; no cross-key ordering guarantee.
 result = sorted([row for key, row in rows], key=lambda row: row['arrival'])`,
-  "observe": "North advances through 12, 17 and 24. South advances through 8 and 17. Each update belongs to one key; event time does not reorder this computation.",
-  "change": "Replace the shop key with the constant \"all\". Explain why only one accumulator remains.",
+  "observe": "Read <code>shop</code> and <code>total</code> for each arrival. North reaches £24 while South reaches £17. The callback keeps separate accumulators for the two shop keys.",
+  "change": "Replace <code>lambda order: order['shop']</code> with <code>lambda order: 'all'</code> in the editor. Select Run in Linux again. Read the <code>total</code> values after each arrival. Why does the last total combine both shops even though the output still prints each order’s <code>shop</code>?",
   "question": "What happens to memory if a never-ending stream introduces a new key on every event?",
   "hints": [
     "Think about how many groups remain reachable.",
@@ -422,7 +425,7 @@ result = sorted([row for key, row in rows], key=lambda row: row['arrival'])`,
     "This example does not expire idle keys."
   ],
   "answer": "State can grow with the number of distinct keys. A real long-running design needs key expiry, bounded cardinality, or a state backend with an explicit retention policy. A window is one way to bound the time span of an aggregate.",
-  "limit": "One real Bytewax worker, with no recovery configuration in this lesson. Stop destroys this VM and its in-memory accumulators. The recovery chapter adds a checkpoint database.",
+  "limit": "One Bytewax worker holds the totals in memory. Each run starts a new Python process with empty totals. The recovery chapter shows how to restore state from a checkpoint within a run.",
   "source": "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py"
 },
 {
@@ -435,6 +438,7 @@ result = sorted([row for key, row in rows], key=lambda row: row['arrival'])`,
   "goal": "Explain stream-table enrichment and choose a policy for missing keys.",
   "intro": "A regional dashboard needs the region of each shop. Order records carry a shop name, so each order must look up a second piece of information.",
   "concept": "Enrichment adds context to an event. A stream-table lookup uses a current table to enrich each arriving record. This differs from a stream-stream join, which must decide how long to wait for a matching event and how long to retain unmatched state.",
+  "fixture": "The editor prepares a one-entry dictionary for North and imports all five orders, including two from South.",
   "predict": "The lookup contains only North. Should South disappear, fail the pipeline, or keep an explicit unknown region?",
   "code": `import bytewax.operators as op
 from bytewax.dataflow import Dataflow
@@ -449,8 +453,8 @@ enriched = op.map('lookup', source, lambda order: {
     'region': regions.get(order['shop'], 'unknown')
 })
 result = collect(flow, enriched)`,
-  "observe": "Every order survives. South is labelled unknown because the lookup is missing; that is not the same as a known region named unknown. This example chooses to preserve the record for investigation.",
-  "change": "Add South to the lookup. Then replace get with direct indexing and remove South again. Inspect the actual Python error.",
+  "observe": "Find the output rows whose <code>shop</code> is South and read their <code>region</code>. The code’s fallback puts <code>unknown</code> on those rows. Compare that result with a missing key in the dictionary.",
+  "change": "Replace <code>regions = {'North': 'Yorkshire'}</code> with <code>regions = {'North': 'Yorkshire', 'South': 'London'}</code> in the editor. Select Run in Linux again. Check the <code>region</code> in the South rows. Next select Restore code, then replace <code>regions.get(order['shop'], 'unknown')</code> with <code>regions[order['shop']]</code>. Select Run in Linux. Read Execution error, then confirm the console still shows the prior successful result.",
   "question": "If a shop changes region tomorrow, should replaying yesterday’s orders use the old region or the new one?",
   "hints": [
     "Ask what question the report answers.",
@@ -478,10 +482,9 @@ payments = [
     {"id": "y", "time": 20, "receipt": "p3"},
 ]
 result = interval_join(horizon=10, payments=payments)`,
-  "prepare": "Select Run in Linux below with the code unchanged.",
   "predict": "How many output rows should order x produce? Does y’s receipt at 20 match an order at 4 with horizon 10?",
-  "observe": "In the console, inspect <code>matches</code> to see which receipts match each order. The <code>comparisons</code> count includes every order–receipt pair the model checks, even when a pair does not match.",
-  "change": "In the editor, change <code>horizon=10</code> to <code>horizon=20</code> and select Run in Linux. Which receipt is new in <code>matches</code>? Check whether <code>comparisons</code> changes. Keep <code>horizon=20</code>. In the <code>payments</code> list, add <code>{\"id\": \"x\", \"time\": 10, \"receipt\": \"p4\"},</code> on its own line before the closing bracket. Run again and compare <code>matches</code> and <code>comparisons</code>. How many receipts now match order <code>x</code>?",
+  "observe": "In the console, inspect <code>matches</code> to see which receipts match each order. <code>comparisons</code> counts every pair the model checks, including pairs it rejects.",
+  "change": "Replace <code>horizon=10</code> with <code>horizon=20</code> in the editor. Select Run in Linux again. Compare <code>matches</code> and <code>comparisons</code>. Which receipt is new? Keep <code>horizon=20</code> and add <code>{\"id\": \"x\", \"time\": 10, \"receipt\": \"p4\"},</code> on its own line before the closing bracket of <code>payments</code>. Select Run in Linux again. How many receipts now match order x, and how many pairs are checked?",
   "question": "Can a hash join always make a many-to-many join O(n+m) total work?",
   "hints": [
     "Hashing helps locate matching groups.",
@@ -516,8 +519,8 @@ result = interval_join(horizon=10, payments=payments)`,
 
 result = temporal_lookup(history=True)`,
   "predict": "Events arrive with timestamps 5, 12 and 8. Should the final event receive the same region as the second event?",
-  "observe": "The as-of sequence is West, East, West. Arrival order does not change which version was valid. With history=False, all three use East because the helper chooses the latest available mapping.",
-  "change": "Switch to history=False and explain what business question that report now answers. Then inspect how equality at event time 10 selects the new version.",
+  "observe": "In <code>trace</code>, compare <code>event_time</code> and <code>region</code> for times 5, 12 and 8. The as-of policy picks the last version whose start is at or before the event time. The version for East begins at 10.",
+  "change": "Replace <code>history=True</code> with <code>history=False</code> in the editor. Select Run in Linux again. Compare <code>policy</code> and <code>trace</code>. Which earlier events receive today’s East value? With the original as-of policy, which version would an event at time 10 receive?",
   "question": "What extra information is needed to reproduce the report as it was known yesterday, rather than the report corrected with today’s historical knowledge?",
   "hints": [
     "A version can be valid in the past but arrive in your system later.",
@@ -537,7 +540,7 @@ result = temporal_lookup(history=True)`,
       "Record the transformation version and reference snapshot or temporal selection policy beside output provenance. A replay using a mutable latest lookup may produce different results even when the source order log is unchanged. That can be intentional, but it should be a named rebuild rather than a mysterious disagreement."
     ]
   ],
-  "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. Reference versions West effective at 0 and East effective at 10. Arrivals carry event times 5,12,8."
+  "fixture": "Versions are West from 0 and East from 10. The three event times arrive in the order 5, 12 and 8."
 },
 {
   "slug": "replay-without-double-counting",
@@ -549,6 +552,7 @@ result = temporal_lookup(history=True)`,
   "goal": "Separate event identity from delivery and explain the scope of deduplication.",
   "intro": "A consumer restarts and reads an order again. Replaying is useful for rebuilding state, but naïvely adding every delivery inflates revenue.",
   "concept": "Replaying a log can deliver the same logical event again. key_on uses the event ID; our remember callback stores True after the first delivery and emits None on duplicates. A filter removes those duplicate markers. fold_final sums the retained orders and emits only at end of input. The first-delivery rule is authored policy implemented through real Bytewax keyed state.",
+  "fixture": "The source sends the full order list followed by a second delivery of a and b. The initial key is the order ID.",
   "predict": "We replay a and b after the five original events. What are the totals before and after deduplication?",
   "code": `import bytewax.operators as op
 from bytewax.dataflow import Dataflow
@@ -566,8 +570,8 @@ all_orders = op.map('one_total', first, lambda row: ('ALL', row[1]))
 summed = op.fold_final('sum', all_orders, lambda: 0,
     lambda total, order: total + order['amount'])
 result = [total for key, total in collect(flow, summed)]`,
-  "observe": "Seven deliveries produce five distinct logical orders and a total of £41. The final accumulator emits at EOF. Remembering an ID is different from coordinating a checkpoint with an external sink.",
-  "change": "Change the identity key from order ID to shop. Predict which real orders are now incorrectly discarded, then run again.",
+  "observe": "Read the final total in the console. The source delivers seven records and the identity key lets five distinct orders contribute to the sum. Bytewax emits the final sum when its input ends.",
+  "change": "Replace <code>lambda order: order['id']</code> with <code>lambda order: order['shop']</code> in the editor. Select Run in Linux again. Compare the new total with £41. The first North and South orders contribute £12 and £8. Which distinct orders now share a key and are incorrectly suppressed?",
   "question": "Would remembering every ID forever be a safe design for an unbounded event stream?",
   "hints": [
     "Consider both memory and identity lifetime.",
@@ -587,15 +591,15 @@ result = [total for key, total in collect(flow, summed)]`,
   "tag": "Real process recovery",
   "goal": "Verify that a killed Bytewax process restores a source position and keyed state, and identify what this does not guarantee.",
   "intro": "A process vanishes after processing three values. Restarting at the beginning would repeat those values. Restarting only the source while losing its running total would produce the wrong answer. The recovery configuration must restore them together.",
-  "concept": "A Bytewax checkpoint records operator state and a resumable source position. This experiment uses a real child engine process and a seekable authored source. The controller observes completed recovery state in SQLite, kills the process with SIGKILL, extends the input, and starts a new engine. Checkpoint files live on the guest’s volatile filesystem and survive this process kill only.",
+  "concept": "A checkpoint saves the running totals and the next source position together. A controller waits for Bytewax to record a completed checkpoint in SQLite, stops the engine immediately with SIGKILL, adds two more amounts and starts another engine. Both engines run inside one experiment and can see its checkpoint files.",
   "predict": "The first process reads 12, 8 and 5, reaching 25. After restart it sees 7 and 4. What source position and total must be restored to finish at 36?",
   "code": `from course import recover
 
 # Wait for a completed Bytewax checkpoint, SIGKILL the engine,
 # then restart it with the same source and recovery database.
 result = recover(checkpoint=True)`,
-  "observe": "resumed_from is 3 and restored_total is 25. Outputs are 12,20,25,32,36. These are verified after an actual process kill. The controller waits for a completed checkpoint before killing, so it deliberately chooses a safe recovery boundary.",
-  "change": "Set checkpoint=False. The second process deliberately ignores the saved recovery configuration. Three inputs repeat and output history contains repeated prefixes, although the restarted sum still finishes at 36.",
+  "observe": "Read <code>resumed_from</code>, <code>restored_total</code>, and <code>outputs</code> and check whether the restarted process repeats any input. The controller killed the original process after confirming a completed checkpoint.",
+  "change": "Replace <code>checkpoint=True</code> with <code>checkpoint=False</code> in the editor. Select Run in Linux again. Compare <code>resumed_from</code>, <code>restored_total</code>, <code>replayed_records</code>, and <code>outputs</code>. Both runs finish at the same sum. Which evidence reveals that the second process started over?",
   "question": "If the process is killed after a visible sink write but before that write is represented by a completed checkpoint, can this ordinary output file prevent a duplicate effect?",
   "hints": [
     "The output file is separate from Bytewax recovery metadata.",
@@ -603,9 +607,9 @@ result = recover(checkpoint=True)`,
     "A stronger claim needs a transactional or idempotent sink contract."
   ],
   "answer": "No. A process checkpoint alone does not atomically commit an arbitrary external effect. This drill verifies source and state restoration at a controlled completed checkpoint. An uncontrolled write/checkpoint race needs sink-specific coordination or idempotency and another failure experiment.",
-  "limit": "A real SIGKILL/restart inside one Linux guest, with a seekable file source and SQLite recovery. The volatile filesystem disappears with the VM. The ordinary append-only output is not transactional and this is not an end-to-end exactly-once proof.",
+  "limit": "This experiment stops and restarts a real Bytewax process with a file source and a SQLite checkpoint. The checkpoint files are private to the run and disappear before another run. The output uses ordinary file appends. Exactly-once external effects require a separate experiment with the actual destination.",
   "source": "https://kafka.apache.org/44/design/design/#message-delivery-semantics",
-  "fixture": "Initial input: 12,8,5. The controller waits for source position 3 and state 25 in a completed checkpoint, then SIGKILLs the engine. Input becomes 12,8,5,7,4 before restart."
+  "fixture": "Five amounts arrive as £12, £8, £5, £7 and £4. The controller gives the original process its first three inputs, waits for a completed checkpoint and kills it. The restart either restores that checkpoint or reads from the beginning."
 },
 {
   "slug": "measure-operation-effort",
@@ -614,14 +618,14 @@ result = recover(checkpoint=True)`,
   "tag": "Instrumented reference algorithms",
   "minutes": 35,
   "goal": "Use per-event work, cardinality and output size to qualify Big-O claims.",
-  "intro": "A pipeline with eight events feels instantaneous. Increase distinct keys and a deduplication step slows down. Counting comparisons can expose the cause before noisy timings obscure it.",
+  "intro": "Two inputs can have the same number of records yet require different amounts of work. This experiment counts comparisons and retained keys for two implementations of duplicate detection.",
   "concept": "Big-O describes asymptotic growth under a stated algorithm and input model. Let n be events and k be retained distinct keys. A constant-cost map does O(n) total work. A hash-backed keyed sum has expected O(1) lookup/update per event and O(k) entries, excluding key/value sizes. A linear-list deduplicator may perform O(nk) comparisons. These are different algorithms, not different labels for the same operator.",
   "code": `from course import operation_effort
 
 result = operation_effort(n=8, keys=2)`,
   "predict": "If you increase distinct keys from 2 to 8 while keeping n=8, which counts should change and which must stay fixed?",
-  "observe": "Map calls and aggregate updates stay at eight. Retained key entries grow from two to eight; linear deduplication comparisons grow from ten to twenty-eight. This fixture counts reference operations, not CPU instructions or Bytewax’s private implementation steps.",
-  "change": "Try n=16 with keys=2, then n=16 with keys=16. Explain why the all-distinct linear deduplicator performs n(n−1)/2 comparisons before discussing its Big-O bound.",
+  "observe": "Compare <code>events</code>, <code>map_calls</code>, <code>hash_aggregate_updates</code>, <code>retained_keys</code>, and <code>linear_dedup_comparisons</code>. The first three have the same count here. The retained keys and linear search comparisons depend on which keys repeat.",
+  "change": "Replace <code>n=8, keys=2</code> with <code>n=16, keys=2</code> in the editor. Select Run in Linux again. Then replace <code>n=16, keys=2</code> with <code>n=16, keys=16</code> and select Run in Linux again. Compare <code>retained_keys</code> and <code>linear_dedup_comparisons</code> across the runs. Explain why the all-distinct case checks every earlier key before retaining the next one.",
   "question": "Does an O(n) map guarantee bounded memory for the entire stream-processing job?",
   "hints": [
     "The operator and the complete pipeline have different boundaries.",
@@ -641,7 +645,7 @@ result = operation_effort(n=8, keys=2)`,
       "A hash lookup’s expected constant time is conditional on its key/hash behavior. A sorted index, linear list and tree have different maintenance and lookup costs. Inspect the selected version’s source or instrument a reference before attributing a complexity claim to a library. The downloadable native harness measures actual Bytewax execution separately."
     ]
   ],
-  "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. Keys cycle as i modulo keys for integers i from 0 to n−1."
+  "fixture": "Keys cycle as i modulo keys for integers i from 0 to n−1."
 },
 {
   "slug": "measure-latency-and-batching",
@@ -651,13 +655,13 @@ result = operation_effort(n=8, keys=2)`,
   "minutes": 35,
   "goal": "Compute completed-event latency quantiles and explain batching, waiting and omitted populations.",
   "intro": "Batching reduces repeated setup work. It also makes early events wait for a batch to fill. A faster total run can make one customer’s order appear later.",
-  "concept": "The model has eight authored arrival times in milliseconds. A single FIFO server pays two milliseconds of setup per batch and three per record. A batch becomes available when its last member arrives; every member completes at the batch’s end. The nearest-rank p99 of eight completed observations is simply the maximum—it is not a well-estimated production tail percentile.",
+  "concept": "The model has eight fixed arrival times. A single first-in, first-out server spends two milliseconds setting up each batch and three milliseconds processing each record. A batch is ready when its last record arrives. All its records finish together. A latency percentile summarizes completion times relative to arrivals. For example, the nearest-rank 99th percentile (p99) is the largest of these eight latencies.",
   "code": `from course import latency_run
 
 result = latency_run(batch=1)`,
   "predict": "If batch grows from 1 to 4, will the first event finish earlier because setup work is shared?",
-  "observe": "Inspect arrival, service start and completion together. With batch 1 the first event finishes at 5 ms. With batch 4 it waits for the fourth arrival at 10, then finishes at 24. Fewer setup costs do not guarantee lower per-event latency.",
-  "change": "Compare batch=1, 2 and 4. Keep input times and service costs unchanged. Report total completion time, p50, maximum/p99, and which record got worse.",
+  "observe": "Read <code>arrived_ms</code>, <code>start_ms</code>, <code>completed_ms</code>, and <code>latency_ms</code> for the first record in <code>trace</code>. <code>elapsed_ms</code> is the time until the entire fixture finishes. <code>p50_ms</code> and <code>p99_ms</code> summarize per-record waits and processing, with p99 equal to the maximum for these eight records.",
+  "change": "Replace <code>batch=1</code> with <code>batch=2</code> in the editor. Select Run in Linux again. Then replace <code>batch=2</code> with <code>batch=4</code> and select Run in Linux again. Across all three runs, compare <code>elapsed_ms</code>, <code>p50_ms</code> and <code>p99_ms</code>. Compare the first record’s <code>latency_ms</code> as well. Can the fixture finish sooner while that record takes longer?",
   "question": "Can p99 among completed events look healthy while the system is overloaded?",
   "hints": [
     "Look for records missing from the observed population.",
@@ -677,7 +681,7 @@ result = latency_run(batch=1)`,
       "The Field notes link a native Bytewax harness that verifies answers before reporting service throughput. Run independent trials and save raw observations. It does not generate an open-loop distributed load or establish Kafka/Flink capacity; that needs a real topology, controlled offered load and source-to-sink verification."
     ]
   ],
-  "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. Authored arrivals in ms: 0,1,2,10,11,12,20,21; setup 2ms per batch and service 3ms per record."
+  "fixture": "Records arrive at 0, 1, 2, 10, 11, 12, 20 and 21 ms. The server spends 2 ms setting up each batch and 3 ms processing each record."
 },
 {
   "slug": "when-the-consumer-falls-behind",
@@ -688,15 +692,16 @@ result = latency_run(batch=1)`,
   "tag": "Discrete teaching model",
   "goal": "Account for arrivals, service, queue growth and overflow.",
   "intro": "Checkouts produce two records per tick. The sink processes one. The queue looks healthy at first, then fills and starts rejecting new records.",
-  "concept": "Backlog is work waiting to be processed. A bounded queue limits memory, but needs an overflow rule. This model drops the newest arrival when full. Backpressure instead feeds a signal upstream to slow production. A queue alone is not backpressure, the overflow arithmetic here is an authored reference policy.",
+  "concept": "Backlog is work waiting to be processed. This model puts arrivals in a fixed-size queue and drops any new record that does not fit. Real backpressure sends a signal upstream so that the producer can slow down. Here the arrival rate stays fixed.",
+  "fixture": "The model runs eight ticks. Two records arrive on each of the first five ticks and none arrive on the last three. Each tick adds arrivals up to the queue limit, counts drops, then processes up to the service rate.",
   "predict": "With capacity 3, two arrivals and one completion per tick, will a larger queue prevent loss indefinitely?",
   "code": `from course import queue_run
 
 # Each tick: admit arrivals, reject overflow, then serve.
 # Five input ticks, followed by three drain ticks.
 result = queue_run(capacity=3, offered=2, service=1)`,
-  "observe": "Read offered, completed, queued and dropped together. Arrivals stop after tick five, so the queue can drain. Rejected records are counted; they have not vanished from the accounting.",
-  "change": "Increase capacity to 6, then increase service to 2. Which change fixes the sustained rate mismatch, and which only absorbs a burst?",
+  "observe": "Compare <code>offered</code>, <code>completed</code>, <code>queued</code>, and <code>dropped</code> in the first five <code>trace</code> rows. The last three ticks have no arrivals, so any waiting work can drain. The top-level <code>dropped</code> adds losses across ticks.",
+  "change": "Replace <code>capacity=3</code> with <code>capacity=6</code> in the editor. Select Run in Linux again. Keep <code>offered=2</code> and <code>service=1</code>. Then replace <code>service=1</code> with <code>service=2</code> and select Run in Linux again. Compare <code>dropped</code> and the <code>queued</code> values while arrivals continue. Which change increases storage, and which makes service keep up with offered work?",
   "question": "The queue is empty at the end. Does that prove every offered record was processed?",
   "hints": [
     "Queue depth is a current state, not a delivery history.",
@@ -720,8 +725,8 @@ result = queue_run(capacity=3, offered=2, service=1)`,
 
 result = recovery_capacity(offered=80, service=100, outage=5)`,
   "predict": "A 400-event backlog and a 100-event/s service: does the system catch up in four seconds while new events continue arriving?",
-  "observe": "It has only 20 events/s of spare capacity, so catching up takes 20 seconds after immediate restoration. Four seconds would apply only if no new work arrived and all 100/s could serve backlog.",
-  "change": "Try service=80 and then service=120. Explain why a nonpositive spare rate yields no finite catch-up time rather than a negative or infinite JSON number.",
+  "observe": "Read <code>backlog_at_restart</code>, <code>spare_per_second</code>, and <code>catch_up_seconds</code>. The outage leaves 400 events waiting. Arrivals continue at 80 events per second after restart, leaving only 20 per second to clear that backlog.",
+  "change": "Replace <code>service=100</code> with <code>service=80</code> in the editor. Select Run in Linux again. Then replace <code>service=80</code> with <code>service=120</code> and select Run in Linux again. Compare <code>spare_per_second</code>, <code>can_catch_up</code>, and <code>catch_up_seconds</code>. Why does the result report <code>null</code> instead of a duration at equal rates?",
   "question": "Would increasing checkpoint frequency necessarily reduce the total recovery disruption?",
   "hints": [
     "More recent checkpoints can reduce replay, but checkpoints also consume resources.",
@@ -741,7 +746,7 @@ result = recovery_capacity(offered=80, service=100, outage=5)`,
       "After a drill, inspect duplicates, missing IDs and the final state alongside time to restart and time to catch up. A fast recovery that silently resets offsets or drops old work does not meet the same objective as a complete recovery. Declare any intentional loss policy before comparing systems."
     ]
   ],
-  "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. Continuing input, service and outage are constant authored parameters; retained input is assumed complete."
+  "fixture": "The model uses a five-second outage, 80 arrivals per second and processing capacity of 100 events per second after restart. It assumes every record is kept during the outage."
 },
 {
   "slug": "resolve-the-streaming-incident",
@@ -756,8 +761,8 @@ result = recovery_capacity(offered=80, service=100, outage=5)`,
 
 result = capstone(deduplicate=True, allowed_lateness=5)`,
   "predict": "The deliveries contain a twice (£10), b late (£5), an invalid negative amount and c after cleanup (£7). What should the stored result contain under this policy?",
-  "observe": "The final sink holds total 15 at revision 2. a’s repeat is recorded as a duplicate, bad as invalid, and c as too late. The final state is one replacement row; adding revisions 10 and 15 would recreate the sink mistake from the correction lesson.",
-  "change": "First disable deduplication while keeping lateness fixed. Then restore it and set allowed_lateness=0. For each run, export the source/result record and identify the first trace step that diverges from your baseline.",
+  "observe": "Read <code>sink</code>, <code>duplicates</code>, <code>invalid</code>, and <code>late</code>. The final sink row contains revision 2 and total 15. Compare it with the revisions shown in <code>trace</code>. Each revision replaces that window’s previous row.",
+  "change": "Select Export run after the first successful run. Replace <code>deduplicate=True</code> with <code>deduplicate=False</code> in the editor. Select Run in Linux again. Export that run, then replace <code>deduplicate=False, allowed_lateness=5</code> with <code>deduplicate=True, allowed_lateness=0</code> and select Run in Linux again. Export the last run. Compare <code>sink</code>, <code>duplicates</code>, and <code>late</code> and identify the first differing <code>trace</code> row for each change.",
   "question": "Write an incident report that distinguishes a policy-correct result from a complete account of all business sales. What would you change if c must eventually count?",
   "hints": [
     "A total can be correct under a discard policy while omitting a real sale.",
@@ -777,7 +782,7 @@ result = capstone(deduplicate=True, allowed_lateness=5)`,
       "A strong explanation balances receipts against accepted, duplicate, invalid and late paths; identifies why the first divergent step matters; distinguishes upserts from contributions; names state-growth and recovery costs; and proposes independent edge cases. The worked reasoning is a reference, not a score or secure assessment. Finish by relating the local mechanisms to the distributed readings and the operational evidence you would collect."
     ]
   ],
-  "fixture": "The complete bounded input is defined in the editable snippet or its named function in course.py. Inspect the helper source before changing a policy. a=10 twice; watermark 10; b=5; bad=−3; watermark 15; c=7. Every data event belongs to [0,10)."
+  "fixture": "Every order belongs to the window from 0 up to 10 seconds. The model receives a (£10) twice, advances the watermark to 10, receives b (£5) and bad (−£3), advances the watermark to 15, then receives c (£7)."
 }
 ];
 

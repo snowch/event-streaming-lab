@@ -1,4 +1,4 @@
-import json,sys,subprocess,importlib.util
+import json,sys,subprocess,importlib.util,traceback
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'python'))
@@ -10,6 +10,35 @@ def execute(source):
     return namespace['result']
 
 sources={lesson['slug']:lesson['code'] for lesson in lessons}
+edits=json.loads((ROOT/'tests/lesson-edits.json').read_text())
+assert set(edits)==set(sources)
+
+def edited_examples(slugs):
+    examples={}
+    for slug in slugs:
+        examples[slug]=[]
+        source=sources[slug]
+        for edit in edits[slug]:
+            if edit.get('restore'):
+                source=sources[slug]
+            for old,new in edit['replace']:
+                assert source.count(old)==1, (slug,old)
+                source=source.replace(old,new,1)
+            try:
+                result=execute(source)
+            except Exception:
+                assert 'error' in edit and edit['error'] in traceback.format_exc(), slug
+                examples[slug].append({'error':edit['error']})
+            else:
+                assert 'error' not in edit, slug
+                examples[slug].append({'result':result})
+    return examples
+
+if '--edits-json' in sys.argv:
+    slugs=sys.argv[2:] or sources
+    print(json.dumps(edited_examples(slugs)))
+    sys.exit(0)
+
 results=[];by_slug={}
 for lesson in lessons:
     result=execute(lesson['code']);results.append(result);by_slug[lesson['slug']]=result
@@ -79,4 +108,7 @@ spec=importlib.util.spec_from_file_location('native_benchmark',ROOT/'harnesses/n
 for backend in ('bytewax','direct'):
  for n in (1,9,10,10000):
   measured=bench.run(n,1,backend);assert measured['trials'][0]['actual']==sum(i*2 for i in range(n) if i%2==0)
+if '--json' not in sys.argv:
+    edited=edited_examples(sources)
+    print(f'Tested {sum(map(len,edited.values()))} documented editor variants across {len(edited)} lessons.')
 print(json.dumps(results) if '--json' in sys.argv else str(len(lessons))+' exact lesson examples, boundary/variant invariants and both measured native backends passed.')
