@@ -178,3 +178,9 @@ Validation checks chapter coverage, direct editor API coverage, local helper fra
 Checked 80 distinct API/manual targets against published PyZMQ/Confluent anchor IDs or exact official release definitions. Bytewax references use versioned definitions and docstrings so readers inspect the contract actually installed in the lab. Reference disclosures and helper source pages were checked at phone width with JavaScript disabled.
 
 The interval-join and temporal-join guide links use Flink 2.3’s canonical reference URL and verified section IDs; the old stable URLs use HTML refresh redirects that lose fragments.
+
+## Resource icons and reference scope — 18 November 2026
+
+Use GPU Lab’s open-book outline for References, with the disclosure indicator at the trailing edge. Related lesson resources use matching outlined cues for cost accounting, source, results, downloads and troubleshooting. Native details semantics retain keyboard and JavaScript-free operation; decorative SVGs are hidden from assistive technology and reduced-motion preferences are respected.
+
+References now contain documentation links, version notes and descriptions only. Removed the added reading questions and answer disclosures from both the renderer and reference data. The original lesson exercise remains a separate section. Phone, desktop, light/dark and keyboard checks cover the book/cost icons, absence of native leading markers, preserved links and absence of assessment content inside References.

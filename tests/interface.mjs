@@ -114,12 +114,18 @@ try{
  await references.locator(':scope>summary').focus();await refPage.keyboard.press('Enter');
  assert.equal(await references.evaluate(element=>element.open),true);
  assert.ok(await references.locator('a').count()>=4);
- assert.ok(await references.locator('.reference-answer').count()>=1);
- await references.locator('.reference-answer>summary').first().click();
- assert.ok((await references.locator('.reference-answer').first().textContent()).length>80);
+ assert.equal(await references.locator('.reference-question,.reference-answer').count(),0,'References contain no assessment');
+ assert.ok(!(await references.textContent()).includes('Compare your answer'));
+ assert.equal(await references.locator(':scope>summary [data-resource-icon="book"] svg').count(),1);
+ assert.equal(await references.locator(':scope>summary .resource-toggle').count(),1);
+ assert.equal(await references.locator(':scope>summary').evaluate(element=>getComputedStyle(element).listStyleType),'none');
+ assert.equal(await references.locator(':scope>summary .resource-icon').getAttribute('aria-hidden'),'true');
+ assert.equal(await refPage.locator('.underhood>summary [data-resource-icon="cost"]').count(),1);
+ assert.equal(await refPage.locator('.practice').count(),1,'The lesson exercise stays separate');
+
  assert.equal(await references.locator('a:not([target="_blank"])').count(),0);
  assert.ok(await refPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
- await references.locator(':scope>summary').scrollIntoViewIfNeeded();await refPage.evaluate(()=>scrollBy(0,-100));await refPage.screenshot({path:'test-results/references-phone.png'});
+ await references.locator(':scope>summary').scrollIntoViewIfNeeded();await refPage.locator('[data-references]>summary').evaluate(element=>scrollTo(0,element.getBoundingClientRect().top+scrollY-100));await refPage.screenshot({path:'test-results/references-phone.png'});
  await refPage.goto(base+'helpers.html#course.collect');
  assert.equal(await refPage.locator('[id="course.collect"]').count(),1);
  assert.ok(await refPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

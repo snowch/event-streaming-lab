@@ -12,9 +12,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2498"
         ]
       ],
-      "note": "Read the predicate and mapper contracts: one decides which records continue; the other chooses the value emitted.",
-      "question": "Does filter change an accepted order into its output shape?",
-      "answer": "No. filter retains or drops the original item; map constructs the shaped value. Neither function makes a claim about broker delivery."
+      "note": "Read the predicate and mapper contracts: one decides which records continue; the other chooses the value emitted."
     },
     {
       "title": "Build and execute a bounded dataflow",
@@ -44,9 +42,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/_bytewax.pyi#L164"
         ]
       ],
-      "note": "Follow the source, output and execution interfaces used by the editor and the course collect helper.",
-      "question": "Does constructing a Dataflow run the input immediately?",
-      "answer": "No. The graph is assembled first. The collect helper attaches a sink and calls run_main to execute it."
+      "note": "Follow the source, output and execution interfaces used by the editor and the course collect helper."
     }
   ],
   "evolve-an-event-schema": [
@@ -58,9 +54,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2498"
         ]
       ],
-      "note": "The callback implements normalization and rejection; Bytewax does not infer the amount units or schema version.",
-      "question": "If map receives version 2, does it know that amount is already in pence?",
-      "answer": "No. The normalize callback defines that interpretation. The operator applies the callback to each item."
+      "note": "The callback implements normalization and rejection; Bytewax does not infer the amount units or schema version."
     },
     {
       "title": "Finite test input",
@@ -78,9 +72,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L241"
         ]
       ],
-      "note": "Inspect how the fixed record sequence becomes the input to the graph.",
-      "question": "Does TestingSource validate each record against a business schema?",
-      "answer": "No. It provides the test items. The authored normalize function validates their fields."
+      "note": "Inspect how the fixed record sequence becomes the input to the graph."
     }
   ],
   "read-a-partitioned-log": [
@@ -96,9 +88,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L241"
         ]
       ],
-      "note": "Read how topics and partitions become input. The lab uses this connector against librdkafka’s simulator, not an Apache Kafka deployment.",
-      "question": "Does a record offset uniquely identify a record across all partitions?",
-      "answer": "No. It is a position within a particular topic partition; retain the partition as well."
+      "note": "Read how topics and partitions become input. The lab uses this connector against librdkafka’s simulator, not an Apache Kafka deployment."
     },
     {
       "title": "Send records and inspect offsets",
@@ -116,9 +106,7 @@
           "https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.TopicPartition"
         ]
       ],
-      "note": "Inspect explicit partition selection and the delivery callback.",
-      "question": "Does returning from produce mean the record has been acknowledged by the broker?",
-      "answer": "No. produce queues a message locally. Polling or flushing serves delivery callbacks; inspect the delivery result."
+      "note": "Inspect explicit partition selection and the delivery callback."
     }
   ],
   "stream-live-through-kafka": [
@@ -138,9 +126,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2022"
         ]
       ],
-      "note": "Follow how the child engine reads records, maintains keyed totals and reports observations.",
-      "question": "Which returned value retains the accumulator for the next record?",
-      "answer": "The first element of the stateful_map callback’s (updated_state, emitted_value) pair."
+      "note": "Follow how the child engine reads records, maintains keyed totals and reports observations."
     },
     {
       "title": "Produce a later event",
@@ -154,9 +140,7 @@
           "https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.Producer.flush"
         ]
       ],
-      "note": "Read queueing, callback and flush behavior before treating a producer call as downstream completion.",
-      "question": "Does producer.flush prove the Bytewax result has reached the output?",
-      "answer": "No. It completes producer delivery work. This exercise separately waits for the engine’s observed result before sending another event."
+      "note": "Read queueing, callback and flush behavior before treating a producer call as downstream completion."
     }
   ],
   "retain-or-compact-a-log": [
@@ -168,9 +152,7 @@
           "https://kafka.apache.org/44/design/design/#log-compaction"
         ]
       ],
-      "note": "Compare the broker’s documented compaction contract with the authored retained_log function. The Python helper does not run a broker compactor.",
-      "question": "Is the retained value for a key necessarily the entire history for that key?",
-      "answer": "No. A compacted view can retain the latest value while omitting earlier versions. Actual compaction is asynchronous; the helper’s deterministic result is a model."
+      "note": "Compare the broker’s documented compaction contract with the authored retained_log function. The Python helper does not run a broker compactor."
     }
   ],
   "give-consumers-their-own-position": [
@@ -198,9 +180,7 @@
           "https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.TopicPartition"
         ]
       ],
-      "note": "Read the distinction between fetching a record and recording the next offset for a group.",
-      "question": "After processing offset 3, which offset should the group commit to resume after that record?",
-      "answer": "Offset 4 in that topic partition. A committed position is the next offset to consume, not the last record’s offset."
+      "note": "Read the distinction between fetching a record and recording the next offset for a group."
     }
   ],
   "route-and-quarantine": [
@@ -220,9 +200,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L450"
         ]
       ],
-      "note": "The decoding callback labels the result; branch splits records according to a predicate.",
-      "question": "Does branch itself store invalid records durably?",
-      "answer": "No. It splits the stream. Durable quarantine requires an appropriate output and recovery policy."
+      "note": "The decoding callback labels the result; branch splits records according to a predicate."
     }
   ],
   "expand-and-rekey": [
@@ -242,9 +220,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L1945"
         ]
       ],
-      "note": "Read how flat_map emits several items per input and how key_on defines the accumulator’s ownership.",
-      "question": "Does doubling carts necessarily double the number of distinct product keys?",
-      "answer": "No. It can double line items while the same product keys receive more contributions. fold_final emits each final keyed accumulation when its finite input ends."
+      "note": "Read how flat_map emits several items per input and how key_on defines the accumulator’s ownership."
     }
   ],
   "choose-the-right-clock": [
@@ -260,9 +236,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/windowing.py#L343"
         ]
       ],
-      "note": "clock_windows is an authored assignment model. These engine clocks show how event timestamps and system time are selected in an actual window operator.",
-      "question": "Does an EventClock always ignore wall-clock progress?",
-      "answer": "No. Its documented watermark also depends on waiting duration and elapsed system time. The course’s frozen-clock fixtures control that progress explicitly."
+      "note": "clock_windows is an authored assignment model. These engine clocks show how event timestamps and system time are selected in an actual window operator."
     }
   ],
   "close-a-window": [
@@ -282,9 +256,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/windowing.py#L1437"
         ]
       ],
-      "note": "Read window length, offset and the clock’s progress contract. The helper uses SlidingWindower even when slide equals width.",
-      "question": "With length 10 and offset 5, can an event belong to more than one window?",
-      "answer": "Yes. The overlapping windows can include the same event. Finite input completion can flush windows in this fixture."
+      "note": "Read window length, offset and the clock’s progress contract. The helper uses SlidingWindower even when slide equals width."
     }
   ],
   "merge-a-session": [
@@ -304,9 +276,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/windowing.py#L1437"
         ]
       ],
-      "note": "Read when events extend or merge a session and how the clock affects closure.",
-      "question": "Can a later-arriving event join two previously separate open sessions?",
-      "answer": "Yes, if its event timestamp bridges the configured gaps while both sessions remain eligible. A fixed tumbling boundary is a different membership rule."
+      "note": "Read when events extend or merge a session and how the clock affects closure."
     }
   ],
   "wait-for-late-events": [
@@ -326,9 +296,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/windowing.py#L1437"
         ]
       ],
-      "note": "Read the clock waiting duration and the window operator’s down and late outputs.",
-      "question": "Is wait_for_system_duration a guarantee that every older event will still be accepted?",
-      "answer": "No. Acceptance depends on the clock watermark and whether the relevant window has closed. The lesson exposes actual late output and controls system-clock progress."
+      "note": "Read the clock waiting duration and the window operator’s down and late outputs."
     }
   ],
   "correct-a-late-result": [
@@ -340,9 +308,7 @@
           "https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/operators/windows/"
         ]
       ],
-      "note": "The corrections helper is an authored revision policy. Compare it with a framework’s window retention and late-data rules without treating them as the same API.",
-      "question": "Does changing allowed lateness automatically make every downstream sink interpret updates correctly?",
-      "answer": "No. The source policy and the sink’s revision/upsert contract must agree. Summing replacement totals as new contributions double counts."
+      "note": "The corrections helper is an authored revision policy. Compare it with a framework’s window retention and late-data rules without treating them as the same API."
     }
   ],
   "keep-state-by-key": [
@@ -358,9 +324,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2921"
         ]
       ],
-      "note": "Read the keyed stream contract and the callback’s (updated_state, emitted_value) result.",
-      "question": "Does returning None as updated_state retain the old state?",
-      "answer": "No. stateful_map documents None as discarding state. The emitted value is the second element, separate from retained state."
+      "note": "Read the keyed stream contract and the callback’s (updated_state, emitted_value) result."
     }
   ],
   "build-a-materialized-view": [
@@ -376,9 +340,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2921"
         ]
       ],
-      "note": "The callback implements revision checks and tombstones; these are authored policies over native keyed state.",
-      "question": "Does stateful_map automatically reject an older revision number?",
-      "answer": "No. The application callback compares revisions and decides what to keep or emit."
+      "note": "The callback implements revision checks and tombstones; these are authored policies over native keyed state."
     }
   ],
   "enrich-a-stream": [
@@ -390,9 +352,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2498"
         ]
       ],
-      "note": "The mapper performs a Python dictionary lookup. This is a current local lookup, not a versioned temporal join.",
-      "question": "Does changing dict.get to direct indexing change Bytewax’s operator contract?",
-      "answer": "No. It changes the callback’s missing-key behavior: dict.get can supply a fallback, while direct indexing raises KeyError."
+      "note": "The mapper performs a Python dictionary lookup. This is a current local lookup, not a versioned temporal join."
     }
   ],
   "join-changing-streams": [
@@ -412,9 +372,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L120"
         ]
       ],
-      "note": "Read insert_mode and emit_mode separately. This fixture chooses final emission over bounded input.",
-      "question": "Does insert_mode=\"product\" mean the operator automatically waits for an event-time horizon?",
-      "answer": "No. It determines how values for a key are retained and combined. Emission mode and the input’s completion determine when this bounded fixture emits."
+      "note": "Read insert_mode and emit_mode separately. This fixture chooses final emission over bounded input."
     }
   ],
   "count-the-join-output": [
@@ -426,9 +384,7 @@
           "https://nightlies.apache.org/flink/flink-docs-release-2.3/docs/sql/reference/queries/joins/#interval-joins"
         ]
       ],
-      "note": "interval_join is an explicit nested-loop course implementation. Use the framework guide to compare time bounds and retention requirements.",
-      "question": "Can widening the horizon add output rows without adding comparisons in this helper?",
-      "answer": "Yes. The helper still examines the same bounded candidate pairs; more of those pairs can satisfy the wider predicate."
+      "note": "interval_join is an explicit nested-loop course implementation. Use the framework guide to compare time bounds and retention requirements."
     }
   ],
   "look-up-the-past": [
@@ -440,9 +396,7 @@
           "https://nightlies.apache.org/flink/flink-docs-release-2.3/docs/sql/reference/queries/joins/#temporal-joins"
         ]
       ],
-      "note": "temporal_lookup is an authored valid-time lookup. Compare its version selection with the documented temporal-table contract.",
-      "question": "Can keeping only the newest region answer every late event correctly?",
-      "answer": "No. A valid-time lookup needs the version effective at the event timestamp, plus a defined policy for missing history and historical corrections."
+      "note": "temporal_lookup is an authored valid-time lookup. Compare its version selection with the documented temporal-table contract."
     }
   ],
   "detect-event-sequences": [
@@ -462,9 +416,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L1653"
         ]
       ],
-      "note": "The callback tracks sequence history; this exercise does not invoke a built-in CEP engine.",
-      "question": "Does stateful_map infer which event sequence should trigger an alert?",
-      "answer": "No. The callback implements the sequence and time-horizon rules; filter selects the alerts it emits."
+      "note": "The callback tracks sequence history; this exercise does not invoke a built-in CEP engine."
     }
   ],
   "replay-without-double-counting": [
@@ -492,9 +444,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L1945"
         ]
       ],
-      "note": "Inspect identity selection, retained seen-state and final accumulation as separate operations.",
-      "question": "If the identity key changes from event ID to shop, can valid orders be suppressed?",
-      "answer": "Yes. The seen-state would then treat different orders from one shop as the same identity. The operator does not choose a business identity for you."
+      "note": "Inspect identity selection, retained seen-state and final accumulation as separate operations."
     }
   ],
   "forget-state-deliberately": [
@@ -510,9 +460,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2921"
         ]
       ],
-      "note": "Read the keyed stream contract and the callback’s (updated_state, emitted_value) result.",
-      "question": "Does returning None as updated_state retain the old state?",
-      "answer": "No. stateful_map documents None as discarding state. The emitted value is the second element, separate from retained state."
+      "note": "Read the keyed stream contract and the callback’s (updated_state, emitted_value) result."
     },
     {
       "title": "State retention policy",
@@ -522,9 +470,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2921"
         ]
       ],
-      "note": "The helper uses logical timestamps and returns None to discard state. It does not configure a background TTL service.",
-      "question": "Does deleting seen-state preserve deduplication for arbitrarily late replays?",
-      "answer": "No. Once an identity is forgotten, a later replay can appear new. Retention is part of the application’s correctness contract."
+      "note": "The helper uses logical timestamps and returns None to discard state. It does not configure a background TTL service."
     }
   ],
   "recover-after-a-failure": [
@@ -548,9 +494,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/inputs.py#L70"
         ]
       ],
-      "note": "Read recovery partition setup and the source snapshot contract. The helper waits for a checkpoint, kills the engine and restarts it within this one experiment.",
-      "question": "Does recovering the source and keyed state make an append-only output file transactional?",
-      "answer": "No. The file is outside the checkpoint commit boundary. Replayed input can repeat effects unless the sink has its own idempotency or transaction contract."
+      "note": "Read recovery partition setup and the source snapshot contract. The helper waits for a checkpoint, kills the engine and restarts it within this one experiment."
     }
   ],
   "retry-with-a-budget": [
@@ -562,9 +506,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2498"
         ]
       ],
-      "note": "The retries are authored, bounded attempts with calculated delays. They are not built-in durable retries or measured sleeping time.",
-      "question": "Does max_attempts automatically bound the entire service’s retry traffic?",
-      "answer": "No. It bounds attempts in this helper. A service-wide budget must also account for concurrent work, retries at other layers and backoff scheduling."
+      "note": "The retries are authored, bounded attempts with calculated delays. They are not built-in durable retries or measured sleeping time."
     }
   ],
   "measure-operation-effort": [
@@ -580,9 +522,7 @@
           "https://docs.python.org/3.12/reference/expressions.html#membership-test-operations"
         ]
       ],
-      "note": "The helper instruments explicit algorithms. A language reference describes operations; it does not promise universal constant-time performance for every key or implementation.",
-      "question": "Do the helper’s linear-scan comparison counts measure Bytewax’s internal lookup algorithm?",
-      "answer": "No. They measure the explicit course reference algorithm. Attribute complexity to the implementation actually counted, and separate retained identities from total events."
+      "note": "The helper instruments explicit algorithms. A language reference describes operations; it does not promise universal constant-time performance for every key or implementation."
     }
   ],
   "measure-latency-and-batching": [
@@ -594,9 +534,7 @@
           "https://sre.google/sre-book/monitoring-distributed-systems/"
         ]
       ],
-      "note": "latency_run is a deterministic schedule model. Read the monitoring guidance before interpreting average completion, first-item delay or tail latency as interchangeable metrics.",
-      "question": "Does lower total elapsed time imply every item finished sooner?",
-      "answer": "No. Batching can improve overall completion while delaying the first item and increasing tail latency in this fixture."
+      "note": "latency_run is a deterministic schedule model. Read the monitoring guidance before interpreting average completion, first-item delay or tail latency as interchangeable metrics."
     }
   ],
   "when-the-consumer-falls-behind": [
@@ -608,9 +546,7 @@
           "https://www.reactive-streams.org/"
         ]
       ],
-      "note": "queue_run is an authored admission/service model. It does not execute the Reactive Streams request protocol or measure a network queue.",
-      "question": "Does increasing this model’s capacity fix a service rate below the offered rate?",
-      "answer": "No. It can delay overflow for a finite burst while backlog keeps growing. Sustained overload requires admission, demand or service-capacity changes."
+      "note": "queue_run is an authored admission/service model. It does not execute the Reactive Streams request protocol or measure a network queue."
     }
   ],
   "budget-for-recovery": [
@@ -622,9 +558,7 @@
           "https://nightlies.apache.org/flink/flink-docs-stable/docs/ops/state/large_state_tuning/"
         ]
       ],
-      "note": "recovery_capacity computes a fluid capacity model. Compare its spare-rate assumption with actual restore, replay and state-loading costs.",
-      "question": "Can the backlog shrink when service equals the offered rate?",
-      "answer": "No. There is no spare rate available to drain backlog. A recovery time also needs restore and replay behavior, not just a steady-state rate."
+      "note": "recovery_capacity computes a fluid capacity model. Compare its spare-rate assumption with actual restore, replay and state-loading costs."
     }
   ],
   "run-a-bounded-backfill": [
@@ -648,9 +582,7 @@
           "https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.TopicPartition"
         ]
       ],
-      "note": "Read the source range and distinguish consumed records from idempotent visible sink rows.",
-      "question": "Does get_watermark_offsets return an event-time watermark?",
-      "answer": "No. It returns low and high log offsets for a partition. The high offset is the next log position, not a timestamp completeness signal."
+      "note": "Read the source range and distinguish consumed records from idempotent visible sink rows."
     },
     {
       "title": "Transform the bounded input",
@@ -668,9 +600,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2498"
         ]
       ],
-      "note": "The helper replays a bounded range and applies an authored sink keyed by record ID.",
-      "question": "Does map itself prevent repeated writes from a replay?",
-      "answer": "No. The sink policy determines whether repeated attempts create extra visible effects."
+      "note": "The helper replays a bounded range and applies an authored sink keyed by record ID."
     }
   ],
   "resolve-the-streaming-incident": [
@@ -686,9 +616,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2921"
         ]
       ],
-      "note": "Read the keyed stream contract and the callback’s (updated_state, emitted_value) result.",
-      "question": "Does returning None as updated_state retain the old state?",
-      "answer": "No. stateful_map documents None as discarding state. The emitted value is the second element, separate from retained state."
+      "note": "Read the keyed stream contract and the callback’s (updated_state, emitted_value) result."
     },
     {
       "title": "Separate operator state from application rules",
@@ -698,9 +626,7 @@
           "https://github.com/bytewax/bytewax/blob/v0.21.1/pysrc/bytewax/operators/__init__.py#L2921"
         ]
       ],
-      "note": "Identity checks, validation, late-event classification and output revisions are implemented in the callback.",
-      "question": "Does using a real stateful operator make every callback effect exactly once?",
-      "answer": "No. Checkpoint and sink-effect boundaries still matter. This bounded exercise demonstrates the authored policy, not a distributed transaction."
+      "note": "Identity checks, validation, late-event classification and output revisions are implemented in the callback."
     }
   ]
 }
