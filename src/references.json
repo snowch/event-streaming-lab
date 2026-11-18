@@ -423,7 +423,7 @@
       "links": [
         [
           "Flink interval joins",
-          "https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/queries/joins/#interval-joins"
+          "https://nightlies.apache.org/flink/flink-docs-release-2.3/docs/sql/reference/queries/joins/#interval-joins"
         ]
       ],
       "note": "interval_join is an explicit nested-loop course implementation. Use the framework guide to compare time bounds and retention requirements.",
@@ -437,7 +437,7 @@
       "links": [
         [
           "Flink temporal joins",
-          "https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/queries/joins/#temporal-joins"
+          "https://nightlies.apache.org/flink/flink-docs-release-2.3/docs/sql/reference/queries/joins/#temporal-joins"
         ]
       ],
       "note": "temporal_lookup is an authored valid-time lookup. Compare its version selection with the documented temporal-table contract.",

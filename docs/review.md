@@ -176,3 +176,5 @@ Bytewax links target the official 0.21.1 function/class definitions and API docs
 Validation checks chapter coverage, direct editor API coverage, local helper fragments, external API anchor targets, keyboard disclosures, JavaScript-disabled reading, narrow layouts and no runtime work on reference pages. Native examples and runtime code are unchanged.
 
 Checked 80 distinct API/manual targets against published PyZMQ/Confluent anchor IDs or exact official release definitions. Bytewax references use versioned definitions and docstrings so readers inspect the contract actually installed in the lab. Reference disclosures and helper source pages were checked at phone width with JavaScript disabled.
+
+The interval-join and temporal-join guide links use Flink 2.3’s canonical reference URL and verified section IDs; the old stable URLs use HTML refresh redirects that lose fragments.
