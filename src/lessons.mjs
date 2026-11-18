@@ -493,7 +493,7 @@ result = interval_join(horizon=10, payments=payments)`,
   ],
   "answer": "No. A useful expected bound is O(n+m+z) for suitable hash-based matching, with additional qualifications for collisions, time indexing and state maintenance. If every left row matches every right row, z is n×m. No lookup structure makes emitting that result linear in input size.",
   "limit": "This is an executed nested-loop reference, not a distributed hash join. It does not evict unmatched state or emit outer-join revisions.",
-  "source": "https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/queries/joins/",
+  "source": "https://nightlies.apache.org/flink/flink-docs-release-2.3/docs/sql/reference/queries/joins/",
   "extra": [
     [
       "Bound the search and the retained history",
@@ -529,7 +529,7 @@ result = temporal_lookup(history=True)`,
   ],
   "answer": "Preserve knowledge/transaction time or the exact input/version snapshot used for the earlier report. Valid-time history alone reconstructs what the latest knowledge says was true then. It cannot reproduce an earlier decision if historical reference data has since been corrected.",
   "limit": "This is a finite as-of lookup over two versions. It does not implement a Flink temporal join, a bitemporal database or distributed version retention.",
-  "source": "https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/queries/joins/#temporal-joins",
+  "source": "https://nightlies.apache.org/flink/flink-docs-release-2.3/docs/sql/reference/queries/joins/#temporal-joins",
   "extra": [
     [
       "Late data creates a history requirement",

@@ -1,3 +1,4 @@
+import {writeHelperReference,renderLessonReferences,renderReadingReferences} from './references.mjs';
 import {renderDiagram} from './diagrams.mjs';
 import {createHash} from 'node:crypto';
 import {renderExercise} from './exercise.mjs';
@@ -59,6 +60,7 @@ const breadcrumb=(id,p='../')=>{
 const sequence=(id,p='../')=>{const n=order.findIndex(x=>x.id===id);return `<nav class="pagination" aria-label="Course sequence"><a href="${n?p+href(order[n-1].id):p+'index.html'}"><span>${n?'Previous chapter':'Course overview'}</span><strong>${n?lookup(order[n-1].id).title:'Choose a chapter'}</strong></a>${n<order.length-1?`<a class="page-next" href="${p}${href(order[n+1].id)}"><span>Next chapter →</span><strong>${lookup(order[n+1].id).title}</strong></a>`:''}</nav>`};
 const contents=parts.map((part,i)=>`<section class="course-part" id="part-${i+1}"><div class="part-heading"><span>Part ${i+1}</span><h3>${part.title}</h3><p>${part.outcome}</p></div><ol class="chapter-list">${part.items.map(id=>`<li><a class="lesson-card chapter-link" href="${href(id)}"><span class="chapter-number">${String(order.findIndex(x=>x.id===id)+1).padStart(2,'0')}</span><span class="chapter-copy"><strong>${lookup(id).title}</strong><span>${lookup(id).short}</span></span><span class="chapter-kind" data-progress="${id}" data-kind="${id.startsWith('advanced/')?'reading':'lab'}">${id.startsWith('advanced/')?'Reading':'Lab'}</span></a></li>`).join('')}</ol></section>`).join('');
 await fs.writeFile('dist/index.html',shell('Learn event streaming with Python',`<main id="main" class="course-home"><header class="home-intro"><p class="eyebrow">Hands-on Python lessons</p><h1>Event streaming<br>with Python.</h1><p class="home-description">Process events, group them into windows and handle late arrivals. Learn how state, replay and recovery affect a streaming application.</p><div class="home-actions"><a class="primary" href="lessons/follow-an-event.html">Start lesson 1 →</a><a href="#curriculum">Browse the course</a></div><p class="home-meta">${lessons.length} runnable lessons <span aria-hidden="true">·</span> ${chapters.length} design readings <span aria-hidden="true">·</span> Basic Python</p></header><section id="curriculum" class="curriculum"><h2>Course contents</h2>${contents}</section><section class="closing"><h2>Continue learning</h2><p>Measure execution with the <a href="performance.html">native performance guide</a>, or explore request/reply and publish/subscribe in <a href="https://snowch.github.io/messaging-patterns-lab/">Messaging Patterns Lab →</a></p></section></main>`));
+await writeHelperReference(shell,['course', 'patterns', 'live_kafka', 'kafka_lab', 'recovery_drill']);
 for(const [i,l]of lessons.entries()){
  const number=order.findIndex(x=>x.id===l.slug)+1;
  const data=esc(JSON.stringify(samples[i],null,2));
@@ -108,6 +110,7 @@ for(const [i,l]of lessons.entries()){
  ${extensions}
  <details class="underhood"><summary>Work, state and recovery costs</summary><p class="note">Where used, n counts input events, k counts retained distinct keys, r counts overlapping windows per event and z counts output matches. Bounds assume the stated algorithm. Collecting, sorting and displaying results adds work.</p><div class="table-scroll"><table><thead><tr><th scope="col">Question</th><th scope="col">Mechanism and boundary</th></tr></thead><tbody>${depth(l).map((v,j)=>`<tr><th scope="row">${['Work','State','Movement','Progress','Recovery'][j]}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table></div></details>
  ${renderExercise(l)}
+ ${renderLessonReferences(l)}
  <section class="limits"><h2>Experiment scope</h2><p>${l.limit}</p><a href="${l.source}">Primary reference →</a></section>
  <div class="completion"><label><input id="done" type="checkbox"> Mark lesson as read</label><span id="save-status" role="status">Reading marks track what you’ve read independently of your runs.</span></div>${sequence(l.slug)}</main>`;
 
