@@ -325,3 +325,26 @@ footer p,footer span{font-size:12px}
 .workbench .runtime-help{margin:12px 16px;padding:12px 0;border:0;border-top:1px solid var(--line);background:transparent}
 .workbench .runtime-help>summary{font-size:14px;color:var(--muted)}
 .workbench .runtime-help p{font-size:14px;line-height:1.6}
+
+/* Optional references stay beside the lesson and work without JavaScript. */
+.lesson .chapter-references{margin:40px 0 28px;padding:0;border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;background:transparent}
+.chapter-references>summary{padding:20px 4px;color:var(--green);cursor:pointer}
+.chapter-references>summary>span{display:inline-block;vertical-align:middle;max-width:calc(100% - 24px)}
+.chapter-references>summary strong{display:block;font-size:19px}
+.reference-subtitle{display:block;color:var(--muted);font-weight:400;font-size:15px;line-height:1.5;margin-top:4px}
+.reference-body{padding:0 4px 20px}
+.chapter-reference-list{padding-left:22px;margin:0}
+.chapter-reference-list>li{padding:18px 0 22px}
+.chapter-reference-list>li+li{border-top:1px solid var(--line)}
+.chapter-reference-list h3{font-size:18px;margin:0 0 12px}
+.reference-links{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline}
+.reference-links a{overflow-wrap:anywhere;max-width:100%;font-size:15px}
+.reference-links code{font:inherit}
+.reference-new-tab{font-size:12px;white-space:nowrap}
+.chapter-reference-list p{font-size:16px;line-height:1.75}
+.chapter-reference-list .reference-answer{padding:0;border:0;background:transparent;margin:12px 0 0}
+.reference-answer>summary{color:var(--green);font-weight:600;font-size:15px}
+.helper-reference .helper-function{scroll-margin-top:110px;margin-top:32px}
+.helper-reference h3 code{font:inherit;overflow-wrap:anywhere}
+.helper-reference pre{max-width:100%;overflow:auto;font-size:13px;line-height:1.6}
+.helper-index{display:flex;flex-wrap:wrap;gap:8px 24px;padding-left:20px}

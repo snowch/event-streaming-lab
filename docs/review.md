@@ -166,3 +166,13 @@ The published app, lesson array, worker, warm bridge, polling shim, runtime cach
 Removed the learner-facing Fast reruns/Fresh Linux choice. Each executable lesson prepares its environment after rendering and idle time, then waits without executing editor code. Run uses the current source once with clean state; pressing Run during preparation joins the same initialization. Restart Python is inside Troubleshooting and retains source, completed output and reading marks. The full-guest runner remains an automatic compatibility path and a diagnostic URL override.
 
 Static reading still works without JavaScript. Design readings and home pages do not load a VM. Hidden pages wait until visible; Save Data, 2G and very low-memory devices defer speculative work. Validation covers unexecuted edited drafts during preparation, no output/reading mark changes, ready-on-first-click execution, clicks during setup, state isolation, cancellation/restart and real compatibility execution.
+
+## Function-specific references — 18 November 2026
+
+Every chapter has a consistent, collapsed References disclosure. Executable lessons link the relevant API methods/classes/options and the exact course helper implementation, with focused documentation-reading questions and hidden comparisons. References open in a labelled new tab to preserve the experiment. The 26 design readings keep their primary sources in the same References presentation with framework-version notes.
+
+Bytewax links target the official 0.21.1 function/class definitions and API docstrings at verified line anchors. PyZMQ links use the 27.3.0 API reference, and underlying ZeroMQ manuals are pinned to libzmq 4.3.5. Kafka client links identify their moving Confluent API guide; the lab runtime remains confluent-kafka 2.6.1 against its in-memory simulator. Authored policies/models are distinguished from library operators and framework comparisons. The generated helper reference uses the actual packaged Python source, including decorators and signatures, rather than a manually maintained copy.
+
+Validation checks chapter coverage, direct editor API coverage, local helper fragments, external API anchor targets, keyboard disclosures, JavaScript-disabled reading, narrow layouts and no runtime work on reference pages. Native examples and runtime code are unchanged.
+
+Checked 80 distinct API/manual targets against published PyZMQ/Confluent anchor IDs or exact official release definitions. Bytewax references use versioned definitions and docstrings so readers inspect the contract actually installed in the lab. Reference disclosures and helper source pages were checked at phone width with JavaScript disabled.

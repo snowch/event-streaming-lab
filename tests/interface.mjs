@@ -71,7 +71,7 @@ try{
  await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'test-results/gpu-style-mobile.png',fullPage:true});
  const staticContext=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:844}}),reading=await staticContext.newPage();
  const staticRequests=[];reading.on('request',r=>staticRequests.push(r.url()));
- for(const path of [...lessons.map(l=>'lessons/'+l.slug+'.html'),...chapters.map(c=>'advanced/'+c.slug+'.html'),'index.html','advanced/index.html','about.html','performance.html','advanced/zeromq-companion.html']){
+ for(const path of [...lessons.map(l=>'lessons/'+l.slug+'.html'),...chapters.map(c=>'advanced/'+c.slug+'.html'),'index.html','advanced/index.html','about.html','performance.html','helpers.html','advanced/zeromq-companion.html']){
   assert.equal((await reading.goto(base+path)).status(),200);
   assert.ok(await reading.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),path+' overflows');
   if(path.startsWith('lessons/')||path.startsWith('advanced/')&&!path.endsWith('index.html')&&!path.endsWith('zeromq-companion.html'))assert.ok((await reading.locator('h1').boundingBox()).y<650,'static chapter opens with its heading');
@@ -103,6 +103,28 @@ try{
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.screenshot({path:'test-results/home-'+width+'.png'});
  }
+ // References work without JavaScript, preserve the experiment in a new tab,
+ // and point directly to existing helper anchors and library API symbols.
+ const refContext=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:844}});
+ const refPage=await refContext.newPage();const referenceRequests=[];
+ refPage.on('request',request=>referenceRequests.push(request.url()));
+ await refPage.goto(base+'lessons/follow-an-event.html');
+ const references=refPage.locator('[data-references]');
+ assert.equal(await references.evaluate(element=>element.open),false);
+ await references.locator(':scope>summary').focus();await refPage.keyboard.press('Enter');
+ assert.equal(await references.evaluate(element=>element.open),true);
+ assert.ok(await references.locator('a').count()>=4);
+ assert.ok(await references.locator('.reference-answer').count()>=1);
+ await references.locator('.reference-answer>summary').first().click();
+ assert.ok((await references.locator('.reference-answer').first().textContent()).length>80);
+ assert.equal(await references.locator('a:not([target="_blank"])').count(),0);
+ assert.ok(await refPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await references.locator(':scope>summary').scrollIntoViewIfNeeded();await refPage.evaluate(()=>scrollBy(0,-100));await refPage.screenshot({path:'test-results/references-phone.png'});
+ await refPage.goto(base+'helpers.html#course.collect');
+ assert.equal(await refPage.locator('[id="course.collect"]').count(),1);
+ assert.ok(await refPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ assert.equal(referenceRequests.some(url=>/\/(engine|assets\/linux)\//.test(url)),false);
+ await refContext.close();
  // Prepared runtime bytes persist across chapters, while a changed manifest
  // and denied storage both fall back to normal runtime preparation.
  const cachePage=await browser.newPage();await cachePage.addInitScript(()=>Object.defineProperty(navigator,'connection',{configurable:true,value:{saveData:true}}));await cachePage.goto(base);
